@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getYouTubeThumbnail, getBestSource } from '@/lib/youtube'
@@ -124,7 +124,7 @@ function PerformanceCard({ p, delay }: { p: Performance; delay: number }) {
 
 type PerfSort = 'newest' | 'oldest' | 'az' | 'sources'
 
-export default function SearchPage() {
+function SearchPageInner() {
   const searchParams = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [performances, setPerformances] = useState<Performance[]>([])
@@ -252,5 +252,13 @@ export default function SearchPage() {
         <SuggestFooter />
       </div>
     </>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense>
+      <SearchPageInner />
+    </Suspense>
   )
 }
