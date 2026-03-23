@@ -169,7 +169,7 @@ export default function ArtistsPage() {
                 style={{ background: sort === val ? 'rgba(255,0,110,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${sort === val ? 'rgba(255,0,110,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', padding: '5px 12px', color: sort === val ? '#FF006E' : 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: sort === val ? 600 : 400, cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', transition: 'all 150ms' }}
               >{label}</button>
             ))}
-            <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '22px', color: '#fff', letterSpacing: '0.06em' }}>{filtered.length}</span>
+            <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '22px', color: '#fff', letterSpacing: '0.06em' }}>{filtered.length} ARTISTS</span>
           </div>
         )}
 

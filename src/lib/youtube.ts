@@ -9,7 +9,7 @@ export function getYouTubeThumbnail(url: string | null | undefined): string | nu
       id = u.searchParams.get('v')
     }
     if (id && /^[a-zA-Z0-9_-]{11}$/.test(id)) {
-      return `https://img.youtube.com/vi/${id}/hqdefault.jpg`
+      return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`
     }
   } catch {}
   return null

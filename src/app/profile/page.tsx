@@ -53,9 +53,18 @@ function formatDate(d: string | null) {
 function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRemove: (id: number) => void }) {
   const router = useRouter()
   const [hovered, setHovered] = useState(false)
-  const [thumbErr, setThumbErr] = useState(false)
   const best = getBestSource(p.watch_sources)
-  const thumb = best ? getYouTubeThumbnail(best.url) : null
+  // Try all sources for a YouTube thumbnail, not just the best watch link
+  const thumbBase = p.watch_sources.map(s => getYouTubeThumbnail(s.url)).find(Boolean) || null
+  const [thumbSrc, setThumbSrc] = useState<string | null>(thumbBase)
+  const handleThumbErr = () => {
+    // maxresdefault may 404 — fall back to hqdefault, then give up
+    if (thumbSrc && thumbSrc.includes('maxresdefault')) {
+      setThumbSrc(thumbSrc.replace('maxresdefault', 'hqdefault'))
+    } else {
+      setThumbSrc(null)
+    }
+  }
 
   return (
     <div
@@ -67,8 +76,8 @@ function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRe
     >
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
-        {thumb && !thumbErr ? (
-          <img src={thumb} alt={p.event_name || 'Performance'} onError={() => setThumbErr(true)}
+        {thumbSrc ? (
+          <img src={thumbSrc} alt={p.event_name || 'Performance'} onError={handleThumbErr}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.07)', fontSize: '36px' }}>♪</div>
@@ -118,9 +127,16 @@ function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRe
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-function TopPerfCard({ p, thumb, onWatch }: { p: Performance; thumb: string | null; onWatch: () => void }) {
+function TopPerfCard({ p, thumb: thumbInit, onWatch }: { p: Performance; thumb: string | null; onWatch: () => void }) {
   const [hovered, setHovered] = useState(false)
-  const [imgErr, setImgErr] = useState(false)
+  const [thumbSrc, setThumbSrc] = useState<string | null>(thumbInit)
+  const handleImgErr = () => {
+    if (thumbSrc && thumbSrc.includes('maxresdefault')) {
+      setThumbSrc(thumbSrc.replace('maxresdefault', 'hqdefault'))
+    } else {
+      setThumbSrc(null)
+    }
+  }
   return (
     <div
       onClick={onWatch}
@@ -130,8 +146,8 @@ function TopPerfCard({ p, thumb, onWatch }: { p: Performance; thumb: string | nu
     >
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '62%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
-        {thumb && !imgErr ? (
-          <img src={thumb} alt={p.event_name || ''} onError={() => setImgErr(true)}
+        {thumbSrc ? (
+          <img src={thumbSrc} alt={p.event_name || ''} onError={handleImgErr}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', color: 'rgba(255,255,255,0.06)' }}>♪</div>
@@ -173,7 +189,7 @@ export default function ProfilePage() {
       const { data } = await supabase
         .from('performances')
         .select(`id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service)`)
-        .order('performance_date', { ascending: false })
+        .or('event_name.ilike.%Super Bowl LVII%,artist_name.ilike.%Paramore%,artist_name.ilike.%Kendrick%,artist_name.ilike.%Anderson%')
         .limit(8)
 
       setSaved((data as Performance[]) || [])
@@ -196,8 +212,12 @@ export default function ProfilePage() {
         <div style={{ background: 'radial-gradient(ellipse at 30% 0%,#1a0030 0%,#030014 70%)', padding: '48px 24px 40px' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '28px', flexWrap: 'wrap' }}>
             {/* Avatar */}
-            <div style={{ width: '96px', height: '96px', borderRadius: '50%', background: 'linear-gradient(135deg,#FF006E,#FF7A00)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 30px rgba(255,0,110,0.3)', border: '3px solid rgba(255,0,110,0.3)' }}>
-              <span style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '40px', color: '#fff', letterSpacing: '0.04em' }}>U</span>
+            <div style={{ width: '96px', height: '96px', borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 30px rgba(255,0,110,0.3)', border: '3px solid rgba(255,0,110,0.3)', overflow: 'hidden', background: 'linear-gradient(135deg,#FF006E,#FF7A00)' }}>
+              <img
+                src="https://github.com/CamNagle24/LiveListenPhotos/blob/main/MyPicture%20copy.png?raw=true"
+                alt="Profile"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
+              />
             </div>
 
             <div style={{ flex: 1 }}>
@@ -238,7 +258,8 @@ export default function ProfilePage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
               {saved.slice(0, 4).map((p) => {
                 const best = getBestSource(p.watch_sources)
-                const thumb = best ? getYouTubeThumbnail(best.url) : null
+                // Try all sources for a YouTube thumbnail, not just the best watch link
+                const thumb = p.watch_sources.map(s => getYouTubeThumbnail(s.url)).find(Boolean) || null
                 return (
                   <TopPerfCard key={p.id} p={p} thumb={thumb} onWatch={() => best && window.open(best.url, '_blank')} />
                 )

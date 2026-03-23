@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { PageNav } from '@/components/PageNav'
 import { SuggestFooter } from '@/components/SuggestFooter'
 
@@ -124,6 +125,7 @@ function EventTicker() {
 // ─── Hero Section ─────────────────────────────────────────────────────────────
 
 function HeroSection() {
+  const router = useRouter()
   return (
     <section
       style={{
@@ -164,6 +166,7 @@ function HeroSection() {
             style={{ background: 'linear-gradient(135deg,#FF006E,#FF3366)', border: 'none', borderRadius: '12px', padding: '16px 36px', color: '#fff', fontSize: '16px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', letterSpacing: '0.04em', boxShadow: '0 0 40px rgba(255,0,110,0.5)', transition: 'all 200ms ease' }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 60px rgba(255,0,110,0.7)' }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 0 40px rgba(255,0,110,0.5)' }}
+            onClick={() => router.push('/search')}
           >
             EXPLORE NOW
           </button>
