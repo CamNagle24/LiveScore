@@ -1,0 +1,339 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { getYouTubeThumbnail, getBestSource } from '@/lib/youtube'
+import { PlatformBadge } from '@/components/PlatformBadge'
+import { PageNav } from '@/components/PageNav'
+import { SuggestFooter } from '@/components/SuggestFooter'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface WatchSource {
+  id: number
+  url: string
+  source_status: string
+  subscription_service: string | null
+}
+
+interface Performance {
+  id: number
+  artist_name: string
+  event_name: string | null
+  venue_name: string | null
+  performance_date: string | null
+  performance_type: string | null
+  duration_minutes: number | null
+  watch_sources: WatchSource[]
+}
+
+// ─── CSS ─────────────────────────────────────────────────────────────────────
+
+const STYLES = `
+  body { background: #030014; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .card-in { animation: fadeUp 0.35s ease both; }
+  @media (prefers-reduced-motion: reduce) { .card-in { animation: none; } }
+`
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(d: string | null) {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+// ─── Saved Performance Card ───────────────────────────────────────────────────
+
+function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRemove: (id: number) => void }) {
+  const router = useRouter()
+  const [hovered, setHovered] = useState(false)
+  const [thumbErr, setThumbErr] = useState(false)
+  const best = getBestSource(p.watch_sources)
+  const thumb = best ? getYouTubeThumbnail(best.url) : null
+
+  return (
+    <div
+      className="card-in"
+      style={{ animationDelay: `${delay}ms`, borderRadius: '14px', overflow: 'hidden', background: 'rgba(255,255,255,0.04)', border: `1px solid ${hovered ? 'rgba(255,0,110,0.3)' : 'rgba(255,255,255,0.07)'}`, transform: hovered ? 'translateY(-4px)' : 'none', boxShadow: hovered ? '0 20px 40px rgba(0,0,0,0.5)' : 'none', transition: 'all 200ms ease', cursor: best ? 'pointer' : 'default' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => best && window.open(best.url, '_blank')}
+    >
+      {/* Thumbnail */}
+      <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
+        {thumb && !thumbErr ? (
+          <img src={thumb} alt={p.event_name || 'Performance'} onError={() => setThumbErr(true)}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }} />
+        ) : (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.07)', fontSize: '36px' }}>♪</div>
+        )}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg,rgba(0,0,0,0.75) 0%,transparent 55%)', opacity: hovered ? 1 : 0.5, transition: 'opacity 200ms' }} />
+        {best && (
+          <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
+            <PlatformBadge platform={best.platform} isYouTube={best.isYouTube} />
+          </div>
+        )}
+        {hovered && best && (
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '46px', height: '46px', background: 'rgba(255,0,110,0.9)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', color: '#fff' }}>▶</div>
+        )}
+        {/* Remove button */}
+        <button
+          onClick={e => { e.stopPropagation(); onRemove(p.id) }}
+          style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', transition: 'all 150ms' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,0,0,0.5)'; e.currentTarget.style.color = '#fff' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.7)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
+        >
+          ✕ Remove
+        </button>
+      </div>
+
+      {/* Meta */}
+      <div style={{ padding: '14px' }}>
+        <div style={{ fontFamily: 'var(--font-dm-sans, system-ui)', fontWeight: 700, fontSize: '14px', color: '#fff', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {p.event_name || 'Live Performance'}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <span style={{ fontFamily: 'var(--font-dm-sans, system-ui)', fontSize: '12px', color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>
+            {formatDate(p.performance_date)}
+          </span>
+          <div
+            style={{ fontFamily: 'var(--font-dm-sans, system-ui)', fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', transition: 'color 150ms' }}
+            onClick={e => { e.stopPropagation(); router.push(`/artist/${encodeURIComponent(p.artist_name)}`) }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
+          >
+            {p.artist_name}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+function TopPerfCard({ p, thumb, onWatch }: { p: Performance; thumb: string | null; onWatch: () => void }) {
+  const [hovered, setHovered] = useState(false)
+  const [imgErr, setImgErr] = useState(false)
+  return (
+    <div
+      onClick={onWatch}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', border: `1px solid ${hovered ? 'rgba(255,0,110,0.35)' : 'rgba(255,255,255,0.08)'}`, transform: hovered ? 'translateY(-3px)' : 'none', boxShadow: hovered ? '0 16px 32px rgba(0,0,0,0.5)' : 'none', transition: 'all 200ms ease' }}
+    >
+      {/* Thumbnail */}
+      <div style={{ width: '100%', paddingTop: '62%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
+        {thumb && !imgErr ? (
+          <img src={thumb} alt={p.event_name || ''} onError={() => setImgErr(true)}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }} />
+        ) : (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', color: 'rgba(255,255,255,0.06)' }}>♪</div>
+        )}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg,rgba(0,0,0,0.75) 0%,transparent 50%)', opacity: hovered ? 1 : 0.5, transition: 'opacity 200ms' }} />
+        {hovered && (
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '36px', height: '36px', background: 'rgba(255,0,110,0.9)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', color: '#fff' }}>▶</div>
+        )}
+      </div>
+      {/* Info */}
+      <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)' }}>
+        <div style={{ fontFamily: 'var(--font-dm-sans, system-ui)', fontWeight: 700, fontSize: '12px', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '3px' }}>
+          {p.event_name || `${p.artist_name} Live`}
+        </div>
+        <div style={{ fontFamily: 'var(--font-dm-sans, system-ui)', fontSize: '11px', color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {p.artist_name}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const STAT_BADGES = [
+  { label: 'Performances Watched', value: '47', color: '#FF006E' },
+  { label: 'Artists Followed', value: '12', color: '#00F5FF' },
+  { label: 'Venues Visited', value: '8', color: '#BCFF00' },
+  { label: 'Hours of Live Music', value: '94', color: '#FF7A00' },
+]
+
+export default function ProfilePage() {
+  const router = useRouter()
+  const [saved, setSaved] = useState<Performance[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'saved' | 'stats'>('saved')
+
+  useEffect(() => {
+    // Load a sample set of performances as "saved" for demo
+    const load = async () => {
+      const { data } = await supabase
+        .from('performances')
+        .select(`id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service)`)
+        .order('performance_date', { ascending: false })
+        .limit(8)
+
+      setSaved((data as Performance[]) || [])
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const handleRemove = (id: number) => {
+    setSaved(prev => prev.filter(p => p.id !== id))
+  }
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
+      <div style={{ background: '#030014', color: '#fff', minHeight: '100vh', fontFamily: 'var(--font-dm-sans, system-ui)' }}>
+        <PageNav />
+
+        {/* Profile Hero */}
+        <div style={{ background: 'radial-gradient(ellipse at 30% 0%,#1a0030 0%,#030014 70%)', padding: '48px 24px 40px' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '28px', flexWrap: 'wrap' }}>
+            {/* Avatar */}
+            <div style={{ width: '96px', height: '96px', borderRadius: '50%', background: 'linear-gradient(135deg,#FF006E,#FF7A00)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 30px rgba(255,0,110,0.3)', border: '3px solid rgba(255,0,110,0.3)' }}>
+              <span style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '40px', color: '#fff', letterSpacing: '0.04em' }}>U</span>
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <h1 style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: 'clamp(32px,5vw,56px)', letterSpacing: '0.04em', margin: '0 0 6px', lineHeight: 1 }}>
+                YOUR PROFILE
+              </h1>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', margin: '0 0 16px' }}>
+                Tracking live performances since 2024
+              </p>
+              {/* Stat pills */}
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {STAT_BADGES.map(s => (
+                  <div key={s.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                    <span style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '24px', color: s.color, letterSpacing: '0.04em', lineHeight: 1 }}>{s.value}</span>
+                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => router.push('/search')}
+              style={{ background: 'linear-gradient(135deg,#FF006E,#FF3366)', border: 'none', borderRadius: '10px', padding: '12px 24px', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', boxShadow: '0 0 20px rgba(255,0,110,0.4)', transition: 'all 150ms', whiteSpace: 'nowrap' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 30px rgba(255,0,110,0.6)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 0 20px rgba(255,0,110,0.4)' }}
+            >
+              + Find More
+            </button>
+          </div>
+        </div>
+
+        {/* Top 4 Performances */}
+        {!loading && saved.length > 0 && (
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px 0' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontFamily: 'var(--font-dm-sans, system-ui)', marginBottom: '14px' }}>
+              Top Performances
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+              {saved.slice(0, 4).map((p) => {
+                const best = getBestSource(p.watch_sources)
+                const thumb = best ? getYouTubeThumbnail(best.url) : null
+                return (
+                  <TopPerfCard key={p.id} p={p} thumb={thumb} onWatch={() => best && window.open(best.url, '_blank')} />
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '0 24px', marginTop: '32px' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', gap: '2px' }}>
+            {(['saved', 'stats'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{ background: 'none', border: 'none', padding: '14px 20px', cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', fontSize: '14px', fontWeight: activeTab === tab ? 600 : 400, color: activeTab === tab ? '#fff' : 'rgba(255,255,255,0.4)', borderBottom: activeTab === tab ? '2px solid #FF006E' : '2px solid transparent', transition: 'all 150ms', textTransform: 'capitalize' }}
+              >
+                {tab === 'saved' ? `Saved (${saved.length})` : 'Stats'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px 80px' }}>
+          {activeTab === 'saved' ? (
+            <>
+              {loading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '60px', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ width: '22px', height: '22px', border: '2px solid rgba(255,0,110,0.3)', borderTopColor: '#FF006E', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.3)' }}>Loading saved performances...</span>
+                </div>
+              ) : saved.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                  <div style={{ fontSize: '40px', opacity: 0.2, marginBottom: '16px' }}>♪</div>
+                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '16px', marginBottom: '8px' }}>No saved performances yet</p>
+                  <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '13px' }}>Browse the search page and save your favorites</p>
+                  <button
+                    onClick={() => router.push('/search')}
+                    style={{ marginTop: '20px', background: 'linear-gradient(135deg,#FF006E,#FF3366)', border: 'none', borderRadius: '10px', padding: '12px 28px', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)' }}
+                  >
+                    Browse Performances
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '18px' }}>
+                  {saved.map((p, i) => (
+                    <SavedCard key={p.id} p={p} delay={i * 40} onRemove={handleRemove} />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            /* Stats tab */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+              {[
+                { title: 'Top Genre', value: 'Hip-Hop / R&B', icon: '🎤', color: '#FF006E' },
+                { title: 'Favorite Venue', value: 'Coachella Valley', icon: '📍', color: '#00F5FF' },
+                { title: 'Most Watched Artist', value: 'Kendrick Lamar', icon: '⭐', color: '#BCFF00' },
+                { title: 'Streak', value: '14 days', icon: '🔥', color: '#FF7A00' },
+              ].map(s => (
+                <div key={s.title} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <div style={{ fontSize: '32px', flexShrink: 0 }}>{s.icon}</div>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-dm-sans, system-ui)', fontSize: '11px', color: 'rgba(255,255,255,0.35)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>{s.title}</div>
+                    <div style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '24px', color: s.color, letterSpacing: '0.04em' }}>{s.value}</div>
+                  </div>
+                </div>
+              ))}
+
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '24px', gridColumn: '1 / -1' }}>
+                <div style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '22px', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>PLATFORM BREAKDOWN</div>
+                {[
+                  { platform: 'YouTube', pct: 68, color: '#FF0000' },
+                  { platform: 'Amazon Prime Video', pct: 18, color: '#00A8E1' },
+                  { platform: 'Netflix', pct: 9, color: '#E50914' },
+                  { platform: 'Other', pct: 5, color: '#555' },
+                ].map(bar => (
+                  <div key={bar.platform} style={{ marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-dm-sans, system-ui)' }}>{bar.platform}</span>
+                      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', fontFamily: 'var(--font-dm-sans, system-ui)' }}>{bar.pct}%</span>
+                    </div>
+                    <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${bar.pct}%`, background: bar.color, borderRadius: '2px', transition: 'width 600ms ease' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <SuggestFooter />
+      </div>
+    </>
+  )
+}
