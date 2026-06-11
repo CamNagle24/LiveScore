@@ -7,6 +7,7 @@ import { getYouTubeThumbnail, getBestSource } from '@/lib/youtube'
 import { PageNav } from '@/components/PageNav'
 import { SuggestFooter } from '@/components/SuggestFooter'
 import { PlatformBadge } from '@/components/PlatformBadge'
+import { SaveButton } from '@/components/SaveButton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,11 +56,6 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-function formatDuration(mins: number | null) {
-  if (!mins) return ''
-  return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60 ? `${mins % 60}m` : ''}`
-}
-
 // ─── Performance Card ─────────────────────────────────────────────────────────
 
 function PerfCard({ p, delay }: { p: Performance; delay: number }) {
@@ -74,7 +70,7 @@ function PerfCard({ p, delay }: { p: Performance; delay: number }) {
       style={{ animationDelay: `${delay}ms`, borderRadius: '14px', overflow: 'hidden', background: 'rgba(255,255,255,0.04)', border: `1px solid ${hovered ? 'rgba(255,0,110,0.35)' : 'rgba(255,255,255,0.07)'}`, transform: hovered ? 'translateY(-4px)' : 'none', boxShadow: hovered ? '0 20px 40px rgba(0,0,0,0.5)' : 'none', transition: 'all 200ms ease', cursor: best ? 'pointer' : 'default' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => best && window.open(best.url, '_blank')}
+      onClick={() => best && window.open(best.url, '_blank', 'noopener,noreferrer')}
     >
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0a000f)', overflow: 'hidden' }}>
@@ -104,6 +100,11 @@ function PerfCard({ p, delay }: { p: Performance; delay: number }) {
         {hovered && best && (
           <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '46px', height: '46px', background: 'rgba(255,0,110,0.9)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', color: '#fff' }}>▶</div>
         )}
+
+        {/* Save toggle */}
+        <div style={{ position: 'absolute', bottom: '10px', right: '10px' }}>
+          <SaveButton performanceId={p.id} />
+        </div>
       </div>
 
       {/* Meta */}

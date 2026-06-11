@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type Tab = "performances" | "video_candidates" | "watch_sources" | "pipeline_runs" | "suggestions";
@@ -128,33 +128,34 @@ export default function Dashboard() {
   }, [tab]);
 
   // Fetch suggestions when that tab is active
-  const fetchSuggestions = useCallback(async () => {
-    setSuggestionsLoading(true);
-    const { data: rows } = await supabase
-      .from("streaming_suggestions")
-      .select("*, performances(artist_name, event_name)")
-      .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(100);
-
-    if (rows) {
-      setSuggestions(
-        rows.map((r: Record<string, unknown>) => {
-          const perf = r.performances as Record<string, string> | null;
-          return {
-            ...r,
-            artist_name: perf?.artist_name ?? "",
-            event_name: perf?.event_name ?? "",
-          } as Suggestion;
-        })
-      );
-    }
-    setSuggestionsLoading(false);
-  }, []);
-
   useEffect(() => {
-    if (tab === "suggestions") fetchSuggestions();
-  }, [tab, fetchSuggestions]);
+    if (tab !== "suggestions") return;
+
+    async function fetchSuggestions() {
+      setSuggestionsLoading(true);
+      const { data: rows } = await supabase
+        .from("streaming_suggestions")
+        .select("*, performances(artist_name, event_name)")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (rows) {
+        setSuggestions(
+          rows.map((r: Record<string, unknown>) => {
+            const perf = r.performances as Record<string, string> | null;
+            return {
+              ...r,
+              artist_name: perf?.artist_name ?? "",
+              event_name: perf?.event_name ?? "",
+            } as Suggestion;
+          })
+        );
+      }
+      setSuggestionsLoading(false);
+    }
+    fetchSuggestions();
+  }, [tab]);
 
   // Open the approve modal to optionally provide a custom URL
   function openApproveModal(s: Suggestion) {
