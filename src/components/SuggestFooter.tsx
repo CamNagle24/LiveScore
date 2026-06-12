@@ -33,7 +33,7 @@ export function SuggestFooter() {
   return (
     <footer style={{ background: '#020010', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '60px 24px 40px' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'start' }}>
+        <div className="footer-grid" style={{ alignItems: 'start' }}>
           {/* Left: branding */}
           <div>
             <div style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '22px', letterSpacing: '0.12em', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>

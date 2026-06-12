@@ -7,6 +7,8 @@ import { getYouTubeThumbnail, getBestSource } from '@/lib/youtube'
 import { PlatformBadge } from '@/components/PlatformBadge'
 import { PageNav } from '@/components/PageNav'
 import { SuggestFooter } from '@/components/SuggestFooter'
+import { useUser } from '@/lib/useUser'
+import { ensureSavedLoaded, toggleSaved } from '@/lib/savedStore'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,7 +74,7 @@ function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRe
       style={{ animationDelay: `${delay}ms`, borderRadius: '14px', overflow: 'hidden', background: 'rgba(255,255,255,0.04)', border: `1px solid ${hovered ? 'rgba(255,0,110,0.3)' : 'rgba(255,255,255,0.07)'}`, transform: hovered ? 'translateY(-4px)' : 'none', boxShadow: hovered ? '0 20px 40px rgba(0,0,0,0.5)' : 'none', transition: 'all 200ms ease', cursor: best ? 'pointer' : 'default' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => best && window.open(best.url, '_blank')}
+      onClick={() => best && window.open(best.url, '_blank', 'noopener,noreferrer')}
     >
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
@@ -170,37 +172,105 @@ function TopPerfCard({ p, thumb: thumbInit, onWatch }: { p: Performance; thumb: 
   )
 }
 
-const STAT_BADGES = [
-  { label: 'Performances Watched', value: '47', color: '#FF006E' },
-  { label: 'Artists Followed', value: '12', color: '#00F5FF' },
-  { label: 'Venues Visited', value: '8', color: '#BCFF00' },
-  { label: 'Hours of Live Music', value: '94', color: '#FF7A00' },
-]
+// ─── Stats computed from the user's saved set ───────────────────────────────────
+
+function mode(values: (string | null | undefined)[]): string | null {
+  const counts = new Map<string, number>()
+  for (const v of values) {
+    if (!v) continue
+    counts.set(v, (counts.get(v) || 0) + 1)
+  }
+  let best: string | null = null
+  let bestN = 0
+  for (const [v, n] of counts) {
+    if (n > bestN) { best = v; bestN = n }
+  }
+  return best
+}
+
+function computeStats(saved: Performance[]) {
+  const artists = new Set(saved.map(p => p.artist_name).filter(Boolean))
+  const venues = new Set(saved.map(p => p.venue_name).filter(Boolean) as string[])
+  const totalMins = saved.reduce((sum, p) => sum + (p.duration_minutes || 0), 0)
+
+  // Platform breakdown from the best source of each saved performance.
+  const platformCounts = new Map<string, number>()
+  for (const p of saved) {
+    const best = getBestSource(p.watch_sources)
+    if (!best) continue
+    const key = best.isYouTube ? 'YouTube' : (best.platform || 'Other')
+    platformCounts.set(key, (platformCounts.get(key) || 0) + 1)
+  }
+  const totalWithSource = [...platformCounts.values()].reduce((a, b) => a + b, 0)
+  const platformColors: Record<string, string> = {
+    YouTube: '#FF0000', 'Amazon Prime Video': '#00A8E1', Netflix: '#E50914',
+    'Disney+': '#113CCF', 'Apple TV+': '#000', Hulu: '#1CE783', Max: '#0046FF',
+  }
+  const platformBreakdown = [...platformCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([platform, n]) => ({
+      platform,
+      pct: totalWithSource ? Math.round((n / totalWithSource) * 100) : 0,
+      color: platformColors[platform] || '#888',
+    }))
+
+  return {
+    badges: [
+      { label: 'Performances Saved', value: String(saved.length), color: '#FF006E' },
+      { label: 'Artists Followed', value: String(artists.size), color: '#00F5FF' },
+      { label: 'Venues Visited', value: String(venues.size), color: '#BCFF00' },
+      { label: 'Hours of Live Music', value: String(Math.round(totalMins / 60)), color: '#FF7A00' },
+    ],
+    mostWatchedArtist: mode(saved.map(p => p.artist_name)),
+    favoriteVenue: mode(saved.map(p => p.venue_name)),
+    topPerformanceType: mode(saved.map(p => p.performance_type)),
+    platformBreakdown,
+  }
+}
 
 export default function ProfilePage() {
   const router = useRouter()
+  const { user, loading: userLoading } = useUser()
   const [saved, setSaved] = useState<Performance[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'saved' | 'stats'>('saved')
 
   useEffect(() => {
-    // Load a sample set of performances as "saved" for demo
-    const load = async () => {
-      const { data } = await supabase
-        .from('performances')
-        .select(`id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service)`)
-        .or('event_name.ilike.%Super Bowl LVII%,artist_name.ilike.%Paramore%,artist_name.ilike.%Kendrick%,artist_name.ilike.%Anderson%')
-        .limit(8)
+    if (userLoading) return
+    let active = true
 
-      setSaved((data as Performance[]) || [])
+    const load = async () => {
+      if (!user) {
+        if (active) { setSaved([]); setLoading(false) }
+        return
+      }
+      ensureSavedLoaded(user.id)
+      const { data } = await supabase
+        .from('saved_performances')
+        .select(`performance:performances(id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service))`)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (!active) return
+      const rows = (data as { performance: Performance | null }[] | null) || []
+      setSaved(rows.map(r => r.performance).filter((p): p is Performance => !!p))
       setLoading(false)
     }
     load()
-  }, [])
+    return () => { active = false }
+  }, [user, userLoading])
 
-  const handleRemove = (id: number) => {
+  const handleRemove = async (id: number) => {
     setSaved(prev => prev.filter(p => p.id !== id))
+    if (user) {
+      try { await toggleSaved(id, user.id) } catch { /* already saved-store reverts */ }
+    }
   }
+
+  const stats = computeStats(saved)
+  const memberSince = user?.created_at ? new Date(user.created_at).getFullYear() : null
+  const avatarUrl = (user?.user_metadata?.avatar_url as string | undefined) || null
+  const initial = (user?.email?.[0] || '?').toUpperCase()
 
   return (
     <>
@@ -212,12 +282,14 @@ export default function ProfilePage() {
         <div style={{ background: 'radial-gradient(ellipse at 30% 0%,#1a0030 0%,#030014 70%)', padding: '48px 24px 40px' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '28px', flexWrap: 'wrap' }}>
             {/* Avatar */}
-            <div style={{ width: '96px', height: '96px', borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 30px rgba(255,0,110,0.3)', border: '3px solid rgba(255,0,110,0.3)', overflow: 'hidden', background: 'linear-gradient(135deg,#FF006E,#FF7A00)' }}>
-              <img
-                src="https://github.com/CamNagle24/LiveListenPhotos/blob/main/MyPicture%20copy.png?raw=true"
-                alt="Profile"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
-              />
+            <div style={{ width: '96px', height: '96px', borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 30px rgba(255,0,110,0.3)', border: '3px solid rgba(255,0,110,0.3)', overflow: 'hidden', background: 'linear-gradient(135deg,#FF006E,#FF7A00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '44px', color: '#fff' }}>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Profile"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
+                />
+              ) : initial}
             </div>
 
             <div style={{ flex: 1 }}>
@@ -225,11 +297,11 @@ export default function ProfilePage() {
                 YOUR PROFILE
               </h1>
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', margin: '0 0 16px' }}>
-                Tracking live performances since 2024
+                {user?.email}{memberSince ? ` · Member since ${memberSince}` : ''}
               </p>
               {/* Stat pills */}
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {STAT_BADGES.map(s => (
+                {stats.badges.map(s => (
                   <div key={s.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                     <span style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '24px', color: s.color, letterSpacing: '0.04em', lineHeight: 1 }}>{s.value}</span>
                     <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{s.label}</span>
@@ -255,13 +327,13 @@ export default function ProfilePage() {
             <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontFamily: 'var(--font-dm-sans, system-ui)', marginBottom: '14px' }}>
               Top Performances
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+            <div className="grid-top4">
               {saved.slice(0, 4).map((p) => {
                 const best = getBestSource(p.watch_sources)
                 // Try all sources for a YouTube thumbnail, not just the best watch link
                 const thumb = p.watch_sources.map(s => getYouTubeThumbnail(s.url)).find(Boolean) || null
                 return (
-                  <TopPerfCard key={p.id} p={p} thumb={thumb} onWatch={() => best && window.open(best.url, '_blank')} />
+                  <TopPerfCard key={p.id} p={p} thumb={thumb} onWatch={() => best && window.open(best.url, '_blank', 'noopener,noreferrer')} />
                 )
               })}
             </div>
@@ -314,12 +386,18 @@ export default function ProfilePage() {
             </>
           ) : (
             /* Stats tab */
+            saved.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.3)' }}>
+                <div style={{ fontSize: '40px', opacity: 0.2, marginBottom: '16px' }}>📊</div>
+                <p style={{ fontSize: '16px' }}>Save some performances to see your stats</p>
+              </div>
+            ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
               {[
-                { title: 'Top Genre', value: 'Hip-Hop / R&B', icon: '🎤', color: '#FF006E' },
-                { title: 'Favorite Venue', value: 'Coachella Valley', icon: '📍', color: '#00F5FF' },
-                { title: 'Most Watched Artist', value: 'Kendrick Lamar', icon: '⭐', color: '#BCFF00' },
-                { title: 'Streak', value: '14 days', icon: '🔥', color: '#FF7A00' },
+                { title: 'Most Watched Artist', value: stats.mostWatchedArtist || '—', icon: '⭐', color: '#BCFF00' },
+                { title: 'Favorite Venue', value: stats.favoriteVenue || '—', icon: '📍', color: '#00F5FF' },
+                { title: 'Top Performance Type', value: stats.topPerformanceType || '—', icon: '🎤', color: '#FF006E' },
+                { title: 'Hours of Live Music', value: `${stats.badges[3].value}h`, icon: '🔥', color: '#FF7A00' },
               ].map(s => (
                 <div key={s.title} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
                   <div style={{ fontSize: '32px', flexShrink: 0 }}>{s.icon}</div>
@@ -330,14 +408,10 @@ export default function ProfilePage() {
                 </div>
               ))}
 
+              {stats.platformBreakdown.length > 0 && (
               <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '24px', gridColumn: '1 / -1' }}>
                 <div style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '22px', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>PLATFORM BREAKDOWN</div>
-                {[
-                  { platform: 'YouTube', pct: 68, color: '#FF0000' },
-                  { platform: 'Amazon Prime Video', pct: 18, color: '#00A8E1' },
-                  { platform: 'Netflix', pct: 9, color: '#E50914' },
-                  { platform: 'Other', pct: 5, color: '#555' },
-                ].map(bar => (
+                {stats.platformBreakdown.map(bar => (
                   <div key={bar.platform} style={{ marginBottom: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-dm-sans, system-ui)' }}>{bar.platform}</span>
@@ -349,7 +423,9 @@ export default function ProfilePage() {
                   </div>
                 ))}
               </div>
+              )}
             </div>
+            )
           )}
         </div>
 

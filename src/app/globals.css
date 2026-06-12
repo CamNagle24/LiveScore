@@ -24,3 +24,43 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ─── Responsive helpers ──────────────────────────────────────────────────
+   Inline styles can't hold media queries, so the known fixed-grid layouts
+   opt into these classes. */
+
+/* Profile "Top Performances": 4 cols desktop → 2 cols on phones */
+.grid-top4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .grid-top4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Suggest footer: 2 cols → 1 col on phones (and tighten the gap) */
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+}
+@media (max-width: 720px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+/* Page nav tabs: let them scroll horizontally instead of overflowing */
+@media (max-width: 560px) {
+  .nav-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -174,6 +174,7 @@ function HeroSection() {
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '16px 36px', color: '#fff', fontSize: '16px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', backdropFilter: 'blur(10px)', transition: 'all 200ms ease' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.transform = 'none' }}
+            onClick={() => router.push('/login')}
           >
             SIGN UP FREE
           </button>
@@ -209,9 +210,11 @@ function FeaturedDrops() {
 }
 
 function EventCard({ drop }: { drop: EventDrop }) {
+  const router = useRouter()
   const [hovered, setHovered] = useState(false)
   return (
     <div
+      onClick={() => router.push(`/search?q=${encodeURIComponent(drop.title)}`)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -264,6 +267,7 @@ function EventCard({ drop }: { drop: EventDrop }) {
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
 function FinalCTA() {
+  const router = useRouter()
   return (
     <section style={{ background: 'radial-gradient(ellipse at 50% 0%,#2a0040 0%,#030014 60%)', padding: '100px 24px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
       <h2 style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: 'clamp(48px,7vw,80px)', color: '#fff', letterSpacing: '0.05em', margin: '0 0 16px' }}>
@@ -277,6 +281,7 @@ function FinalCTA() {
         style={{ background: 'linear-gradient(135deg,#FF006E,#FF3366)', border: 'none', borderRadius: '14px', padding: '18px 44px', color: '#fff', fontSize: '17px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', letterSpacing: '0.05em', boxShadow: '0 0 60px rgba(255,0,110,0.5)', transition: 'all 200ms ease' }}
         onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 80px rgba(255,0,110,0.7)' }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 0 60px rgba(255,0,110,0.5)' }}
+        onClick={() => router.push('/login')}
       >
         CREATE FREE ACCOUNT
       </button>
