@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
  * page issues one query instead of one per card.
  */
 
-let savedIds = new Set<number>();
+let savedIds = new Set<string>();
 let loadedForUser: string | null = null;
 let inFlight: Promise<void> | null = null;
 const listeners = new Set<() => void>();
@@ -34,7 +34,7 @@ export function ensureSavedLoaded(userId: string) {
       .from("saved_performances")
       .select("performance_id")
       .eq("user_id", userId);
-    savedIds = new Set((data ?? []).map((r) => Number(r.performance_id)));
+    savedIds = new Set((data ?? []).map((r) => String(r.performance_id)));
     emit();
   })();
   return inFlight;
@@ -48,12 +48,12 @@ export function resetSaved() {
   emit();
 }
 
-export function isSavedId(id: number) {
+export function isSavedId(id: string) {
   return savedIds.has(id);
 }
 
 /** Optimistically toggle, then persist. Reverts on error. */
-export async function toggleSaved(id: number, userId: string) {
+export async function toggleSaved(id: string, userId: string) {
   const wasSaved = savedIds.has(id);
   if (wasSaved) savedIds.delete(id);
   else savedIds.add(id);

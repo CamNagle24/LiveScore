@@ -20,7 +20,7 @@ interface WatchSource {
 }
 
 interface Performance {
-  id: number
+  id: string
   artist_name: string
   event_name: string | null
   venue_name: string | null
@@ -52,7 +52,7 @@ function formatDate(d: string | null) {
 
 // ─── Saved Performance Card ───────────────────────────────────────────────────
 
-function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRemove: (id: number) => void }) {
+function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRemove: (id: string) => void }) {
   const router = useRouter()
   const [hovered, setHovered] = useState(false)
   const best = getBestSource(p.watch_sources)
@@ -260,7 +260,7 @@ export default function ProfilePage() {
     return () => { active = false }
   }, [user, userLoading])
 
-  const handleRemove = async (id: number) => {
+  const handleRemove = async (id: string) => {
     setSaved(prev => prev.filter(p => p.id !== id))
     if (user) {
       try { await toggleSaved(id, user.id) } catch { /* already saved-store reverts */ }

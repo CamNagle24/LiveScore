@@ -1,9 +1,11 @@
 -- Saved performances: per-user bookmarks of performances.
 -- Run this in the Supabase SQL editor.
 
+-- performance_id is text: performances.id holds string keys (e.g. "tmdb-123",
+-- "manual-…"), so this column and its foreign key must match that type.
 create table if not exists saved_performances (
   user_id uuid references auth.users on delete cascade,
-  performance_id bigint references performances(id) on delete cascade,
+  performance_id text references performances(id) on delete cascade,
   created_at timestamptz default now(),
   primary key (user_id, performance_id)
 );

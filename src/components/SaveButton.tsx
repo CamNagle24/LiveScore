@@ -17,7 +17,7 @@ import {
  *
  * Designed to sit on top of a card, so it stops click propagation.
  */
-export function SaveButton({ performanceId, size = 34 }: { performanceId: number; size?: number }) {
+export function SaveButton({ performanceId, size = 34 }: { performanceId: string; size?: number }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading } = useUser();

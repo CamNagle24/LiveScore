@@ -19,7 +19,7 @@ interface WatchSource {
 }
 
 interface Performance {
-  id: number
+  id: string
   artist_name: string
   event_name: string | null
   venue_name: string | null
