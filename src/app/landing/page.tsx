@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { PageNav } from '@/components/PageNav'
 import { SuggestFooter } from '@/components/SuggestFooter'
@@ -228,15 +229,16 @@ function EventCard({ drop }: { drop: EventDrop }) {
         transition: 'transform 200ms ease, box-shadow 200ms ease',
       }}
     >
-      {/* Background image */}
-      <img
-        src={`${drop.image}?w=600&q=75&auto=format&fit=crop`}
+      {/* Background image — optimized (resized + webp) via next/image. fill
+          positions it absolutely within the relative card; the GitHub ?raw=true
+          host is allow-listed in next.config remotePatterns. Below the hero, so
+          default lazy loading is intentional. */}
+      <Image
+        src={drop.image}
         alt={drop.title}
+        fill
+        sizes="(max-width: 600px) 100vw, (max-width: 1200px) 50vw, 300px"
         style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
           objectFit: 'cover',
           transform: hovered ? 'scale(1.06)' : 'scale(1)',
           transition: 'transform 400ms ease',

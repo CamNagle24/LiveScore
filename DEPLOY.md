@@ -23,11 +23,14 @@ ADMIN_EMAILS=you@example.com            # comma-separated; who may access /devel
 ## 2. Database
 
 Run the migrations in [`supabase/`](./supabase/README.md) against your project
-(Dashboard → SQL Editor): currently just `saved.sql`, which creates the
-`saved_performances` table and its row-level security policies.
+(Dashboard → SQL Editor):
 
-Before running, confirm `performances.id` is a **`text`** column — the migration
-assumes string ids (see the note in `supabase/README.md`).
+- `saved.sql` — `saved_performances` table + RLS for account-bound bookmarks.
+- `suggestions.sql` — `suggestions` table + RLS for the footer's "Suggest a
+  performance" form. Without it, footer submissions fail silently.
+
+Before running `saved.sql`, confirm `performances.id` is a **`text`** column —
+it assumes string ids (see the note in `supabase/README.md`).
 
 ## 3. Auth providers
 
