@@ -8,9 +8,10 @@ SQL migrations for LiveScore. Run them in the **Supabase SQL editor**
 | File | What it creates |
 |------|-----------------|
 | `saved.sql` | `saved_performances` table + row-level security for account-bound bookmarks |
+| `suggestions.sql` | `suggestions` table + RLS for visitor-submitted performance ideas (the site footer) |
 
-Run `saved.sql` once per environment (it uses `create table if not exists`,
-so re-running is safe).
+Run each once per environment (they use `create table if not exists`, so
+re-running is safe).
 
 ## `saved_performances`
 
@@ -37,8 +38,28 @@ add another table referencing `performances(id)`, use `text`.
 > The `performances` table itself is created by the external ingestion
 > pipeline, not by these migrations.
 
+## `suggestions`
+
+Visitor-submitted performance ideas from the footer form (artist + optional
+event/link). Distinct from the pipeline's `streaming_suggestions` table
+reviewed on `/developer`.
+
+```
+id           bigint  generated identity, primary key
+artist_name  text    not null
+event_name   text
+link         text
+created_at   timestamptz default now()
+```
+
+RLS allows **insert only**, for anonymous and signed-in visitors, since the
+footer appears on public pages. There is no select/update/delete policy, so the
+anon key cannot read or alter submissions — review them in the dashboard (or
+with the service-role key, which bypasses RLS). This means a public spam vector;
+add a captcha or rate limit if it becomes a problem.
+
 ## Row-level security
 
-RLS is enabled and a user can only read/create/delete **their own** rows
+`saved_performances` RLS lets a user read/create/delete only **their own** rows
 (`auth.uid() = user_id`). The app talks to Supabase with the anon key, so these
 policies are what actually protect the data — don't disable them.
