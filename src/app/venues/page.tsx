@@ -108,7 +108,7 @@ export default function VenuesPage() {
         if (!row.venue_name) continue
         if (!venueMap[row.venue_name]) venueMap[row.venue_name] = { count: 0, artists: new Set() }
         venueMap[row.venue_name].count++
-        venueMap[row.venue_name].artists.add(row.artist_name)
+        if (row.artist_name) venueMap[row.venue_name].artists.add(row.artist_name)
       }
 
       const entries: VenueEntry[] = Object.entries(venueMap)

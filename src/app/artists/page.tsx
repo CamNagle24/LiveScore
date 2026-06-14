@@ -53,7 +53,7 @@ function ArtistCard({ artist, delay }: { artist: ArtistEntry; delay: number }) {
           />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '64px', color: 'rgba(255,255,255,0.06)', letterSpacing: '0.04em' }}>
-            {artist.name[0].toUpperCase()}
+            {(artist.name[0] || '?').toUpperCase()}
           </div>
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg,rgba(0,0,0,0.7) 0%,transparent 50%)', opacity: hovered ? 1 : 0.4, transition: 'opacity 200ms' }} />
@@ -97,6 +97,7 @@ export default function ArtistsPage() {
       // Count and deduplicate
       const counts: Record<string, number> = {}
       for (const row of data) {
+        if (!row.artist_name) continue
         counts[row.artist_name] = (counts[row.artist_name] || 0) + 1
       }
 
@@ -107,20 +108,32 @@ export default function ArtistsPage() {
       setArtists(entries)
       setLoading(false)
 
-      // Fetch artist thumbnails from TheAudioDB (non-blocking)
-      const enriched = await Promise.all(
-        entries.map(async (entry) => {
+      // Enrich with TheAudioDB thumbnails. Fetch with bounded concurrency
+      // (rather than one request per artist at once) so we don't overwhelm
+      // the rate-limited upstream API, and reveal thumbnails as they arrive.
+      const thumbs: Record<string, string> = {}
+      const queue = [...entries]
+      const CONCURRENCY = 5
+
+      const worker = async () => {
+        while (queue.length > 0) {
+          const entry = queue.shift()
+          if (!entry) break
           try {
             const res = await fetch(`/api/artists/search?q=${encodeURIComponent(entry.name)}`)
             const json = await res.json()
-            const thumb = json.artists?.[0]?.thumb || null
-            return { ...entry, thumb }
+            const thumb = json.artists?.[0]?.thumb
+            if (thumb) {
+              thumbs[entry.name] = thumb
+              setArtists(prev => prev.map(a => (thumbs[a.name] ? { ...a, thumb: thumbs[a.name] } : a)))
+            }
           } catch {
-            return entry
+            // leave this artist without a thumbnail
           }
-        })
-      )
-      setArtists(enriched)
+        }
+      }
+
+      await Promise.all(Array.from({ length: CONCURRENCY }, worker))
     }
     load()
   }, [])
