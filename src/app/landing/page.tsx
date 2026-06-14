@@ -228,9 +228,11 @@ function EventCard({ drop }: { drop: EventDrop }) {
         transition: 'transform 200ms ease, box-shadow 200ms ease',
       }}
     >
-      {/* Background image */}
+      {/* Background image. drop.image already carries ?raw=true; the previous
+          ?w=…&q=…&auto=format&fit=crop suffix was imgix-style params GitHub
+          ignores (and produced a malformed double-? URL), so it's dropped. */}
       <img
-        src={`${drop.image}?w=600&q=75&auto=format&fit=crop`}
+        src={drop.image}
         alt={drop.title}
         style={{
           position: 'absolute',
