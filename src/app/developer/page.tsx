@@ -172,86 +172,107 @@ export default function Dashboard() {
   // Approve a suggestion: either mark existing performance or create a new one
   async function approveSuggestion(s: Suggestion, overrideUrl?: string, title?: string) {
     setSaving(true);
-    const watchUrl = overrideUrl || s.tmdb_url;
-    const perfTitle = title || s.tmdb_title;
+    try {
+      const watchUrl = overrideUrl || s.tmdb_url;
+      const perfTitle = title || s.tmdb_title;
 
-    if (s.suggestion_type === "new_performance") {
-      // Create a new performance from this suggestion
-      const newId = `tmdb-${s.tmdb_id}-${Date.now()}`;
-      await supabase.from("performances").insert({
-        id: newId,
-        artist_name: s.matched_artist || s.artist_name || "",
-        event_name: perfTitle,
-        performance_type: "concert",
-        has_watch_source: true,
-        official_release_platform: s.platform,
-        official_release_notes: `Added from TMDB: "${perfTitle}" on ${s.platform}`,
-      });
-
-      if (watchUrl) {
-        await supabase.from("watch_sources").insert({
-          performance_id: newId,
-          platform: s.platform.toLowerCase().replace(/[^a-z0-9]/g, "_"),
-          url: watchUrl,
-          is_official: true,
-          requires_subscription: s.access_type === "flatrate",
-          subscription_service: s.access_type === "flatrate" ? s.platform : "",
-          is_embedded: isEmbedded,
-          timestamp_start: timestampStart,
-          timestamp_end: timestampEnd,
-          context_note: contextNote,
-          source_status: sourceStatus,
-          added_by: "tmdb_suggestion",
-        });
-      }
-    } else {
-      // Match type: update existing performance
-      const notes = `TMDB: "${s.tmdb_title}" on ${s.platform}`;
-      await supabase
-        .from("performances")
-        .update({
+      if (s.suggestion_type === "new_performance") {
+        // Create a new performance from this suggestion
+        const newId = `tmdb-${s.tmdb_id}-${Date.now()}`;
+        const { error: perfErr } = await supabase.from("performances").insert({
+          id: newId,
+          artist_name: s.matched_artist || s.artist_name || "",
+          event_name: perfTitle,
+          performance_type: "concert",
+          has_watch_source: true,
           official_release_platform: s.platform,
-          official_release_notes: notes,
-        })
-        .eq("id", s.performance_id);
-
-      // Also add a watch source with the URL
-      if (watchUrl) {
-        await supabase.from("watch_sources").insert({
-          performance_id: s.performance_id,
-          platform: s.platform.toLowerCase().replace(/[^a-z0-9]/g, "_"),
-          url: watchUrl,
-          is_official: true,
-          requires_subscription: s.access_type === "flatrate",
-          subscription_service: s.access_type === "flatrate" ? s.platform : "",
-          is_embedded: isEmbedded,
-          timestamp_start: timestampStart,
-          timestamp_end: timestampEnd,
-          context_note: contextNote,
-          source_status: sourceStatus,
-          added_by: "tmdb_suggestion",
+          official_release_notes: `Added from TMDB: "${perfTitle}" on ${s.platform}`,
         });
+        // Abort before marking approved so a failed create isn't lost silently.
+        if (perfErr) {
+          alert(`Could not create the performance: ${perfErr.message}`);
+          return;
+        }
+
+        if (watchUrl) {
+          const { error: srcErr } = await supabase.from("watch_sources").insert({
+            performance_id: newId,
+            platform: s.platform.toLowerCase().replace(/[^a-z0-9]/g, "_"),
+            url: watchUrl,
+            is_official: true,
+            requires_subscription: s.access_type === "flatrate",
+            subscription_service: s.access_type === "flatrate" ? s.platform : "",
+            is_embedded: isEmbedded,
+            timestamp_start: timestampStart,
+            timestamp_end: timestampEnd,
+            context_note: contextNote,
+            source_status: sourceStatus,
+            added_by: "tmdb_suggestion",
+          });
+          if (srcErr) alert(`Performance created, but adding the watch source failed: ${srcErr.message}`);
+        }
+      } else {
+        // Match type: update existing performance
+        const notes = `TMDB: "${s.tmdb_title}" on ${s.platform}`;
+        const { error: updErr } = await supabase
+          .from("performances")
+          .update({
+            official_release_platform: s.platform,
+            official_release_notes: notes,
+          })
+          .eq("id", s.performance_id);
+        if (updErr) {
+          alert(`Could not update the performance: ${updErr.message}`);
+          return;
+        }
+
+        // Also add a watch source with the URL
+        if (watchUrl) {
+          const { error: srcErr } = await supabase.from("watch_sources").insert({
+            performance_id: s.performance_id,
+            platform: s.platform.toLowerCase().replace(/[^a-z0-9]/g, "_"),
+            url: watchUrl,
+            is_official: true,
+            requires_subscription: s.access_type === "flatrate",
+            subscription_service: s.access_type === "flatrate" ? s.platform : "",
+            is_embedded: isEmbedded,
+            timestamp_start: timestampStart,
+            timestamp_end: timestampEnd,
+            context_note: contextNote,
+            source_status: sourceStatus,
+            added_by: "tmdb_suggestion",
+          });
+          if (srcErr) alert(`Performance updated, but adding the watch source failed: ${srcErr.message}`);
+        }
       }
+
+      // Mark suggestion as approved. The data writes above already succeeded, so
+      // remove it from the list regardless — surface a warning if the flag fails
+      // (re-approving would double-insert the watch source, which is worse).
+      const { error: statusErr } = await supabase
+        .from("streaming_suggestions")
+        .update({ status: "approved", reviewed_at: new Date().toISOString() })
+        .eq("id", s.id);
+      if (statusErr) alert(`Saved, but marking the suggestion approved failed: ${statusErr.message}`);
+
+      setApproveModal(null);
+      setSuggestions((prev) => prev.filter((x) => x.id !== s.id));
+      setCounts((prev) => ({ ...prev, suggestions: Math.max(0, prev.suggestions - 1) }));
+    } finally {
+      setSaving(false);
     }
-
-    // Mark suggestion as approved
-    await supabase
-      .from("streaming_suggestions")
-      .update({ status: "approved", reviewed_at: new Date().toISOString() })
-      .eq("id", s.id);
-
-    setSaving(false);
-    setApproveModal(null);
-    setSuggestions((prev) => prev.filter((x) => x.id !== s.id));
-    setCounts((prev) => ({ ...prev, suggestions: Math.max(0, prev.suggestions - 1) }));
   }
 
   // Reject a suggestion
   async function rejectSuggestion(s: Suggestion) {
-    await supabase
+    const { error: err } = await supabase
       .from("streaming_suggestions")
       .update({ status: "rejected", reviewed_at: new Date().toISOString() })
       .eq("id", s.id);
+    if (err) {
+      alert(`Could not reject the suggestion: ${err.message}`);
+      return;
+    }
 
     setSuggestions((prev) => prev.filter((x) => x.id !== s.id));
     setCounts((prev) => ({ ...prev, suggestions: Math.max(0, prev.suggestions - 1) }));
@@ -269,16 +290,18 @@ export default function Dashboard() {
       })
       .eq("id", editingPerf.id);
     setSaving(false);
-    if (!err) {
-      setData((prev) =>
-        prev.map((r) =>
-          r.id === editingPerf.id
-            ? { ...r, official_release_platform: editPlatform, official_release_notes: editNotes }
-            : r
-        )
-      );
-      setEditingPerf(null);
+    if (err) {
+      alert(`Could not save the release info: ${err.message}`);
+      return;
     }
+    setData((prev) =>
+      prev.map((r) =>
+        r.id === editingPerf.id
+          ? { ...r, official_release_platform: editPlatform, official_release_notes: editNotes }
+          : r
+      )
+    );
+    setEditingPerf(null);
   }
 
   function openEditRelease(row: Record<string, unknown>) {
@@ -292,7 +315,7 @@ export default function Dashboard() {
     setAddSaving(true);
     const newId = `manual-${Date.now()}`;
 
-    await supabase.from("performances").insert({
+    const { error: perfErr } = await supabase.from("performances").insert({
       id: newId,
       artist_name: addArtist.trim(),
       event_name: addEvent.trim() || null,
@@ -301,12 +324,18 @@ export default function Dashboard() {
       official_release_platform: addPlatform || "",
       official_release_notes: addNotes || "",
     });
+    // Keep the form open with its values so a failed save isn't lost.
+    if (perfErr) {
+      setAddSaving(false);
+      alert(`Could not add the performance: ${perfErr.message}`);
+      return;
+    }
 
     if (addUrl.trim()) {
       const platformSlug = addPlatform
         ? addPlatform.toLowerCase().replace(/[^a-z0-9]/g, "_")
         : "unknown";
-      await supabase.from("watch_sources").insert({
+      const { error: srcErr } = await supabase.from("watch_sources").insert({
         performance_id: newId,
         platform: platformSlug,
         url: addUrl.trim(),
@@ -316,6 +345,7 @@ export default function Dashboard() {
         subscription_service: addPlatform || "",
         added_by: "manual",
       });
+      if (srcErr) alert(`Performance added, but adding the watch source failed: ${srcErr.message}`);
     }
 
     setAddSaving(false);
