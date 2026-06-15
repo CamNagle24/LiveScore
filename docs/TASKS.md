@@ -10,7 +10,6 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Queue
 
-- [ ] Add a test harness (Vitest + React Testing Library) — config + one passing sample test + `npm test` script wired up.
 - [ ] Cover admin gating in `src/middleware.ts` — tests proving non-`ADMIN_EMAILS` users are blocked from `/developer` and admins are allowed.
 - [ ] Harden `/auth/callback` error handling — handle missing/invalid `code`, surface a friendly error UI instead of throwing; add a test.
 - [ ] Per-page metadata + OpenGraph — `generateMetadata` on key routes (home, profile, performance detail) with title/description/og tags.
