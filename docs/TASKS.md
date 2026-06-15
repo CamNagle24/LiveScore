@@ -10,7 +10,6 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Queue
 
-- [ ] Add CI workflow `.github/workflows/test.yml` — runs `npm ci`, typecheck, lint, build on PRs to main; green on the default branch.
 - [ ] Add a test harness (Vitest + React Testing Library) — config + one passing sample test + `npm test` script wired up.
 - [ ] Cover admin gating in `src/middleware.ts` — tests proving non-`ADMIN_EMAILS` users are blocked from `/developer` and admins are allowed.
 - [ ] Harden `/auth/callback` error handling — handle missing/invalid `code`, surface a friendly error UI instead of throwing; add a test.
@@ -19,3 +18,4 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Done
 <!-- routine PRs move completed items here -->
+- [x] Add CI workflow `.github/workflows/test.yml` — runs `npm ci`, typecheck, lint, build on PRs to main; green on the default branch.
