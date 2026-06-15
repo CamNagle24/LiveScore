@@ -10,7 +10,6 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Queue
 
-- [ ] Add a test harness (Vitest + React Testing Library) — config + one passing sample test + `npm test` script wired up.
 - [ ] Cover admin gating in `src/middleware.ts` — tests proving non-`ADMIN_EMAILS` users are blocked from `/developer` and admins are allowed.
 - [ ] Harden `/auth/callback` error handling — handle missing/invalid `code`, surface a friendly error UI instead of throwing; add a test.
 - [ ] Add loading + error states to saved-performances flows — no unhandled rejections; user sees clear feedback on save/unsave failure.
