@@ -30,12 +30,19 @@ export function ensureSavedLoaded(userId: string) {
   if (loadedForUser === userId) return inFlight ?? Promise.resolve();
   loadedForUser = userId;
   inFlight = (async () => {
-    const { data } = await supabase
-      .from("saved_performances")
-      .select("performance_id")
-      .eq("user_id", userId);
-    savedIds = new Set((data ?? []).map((r) => String(r.performance_id)));
-    emit();
+    try {
+      const { data, error } = await supabase
+        .from("saved_performances")
+        .select("performance_id")
+        .eq("user_id", userId);
+      if (error) throw error;
+      savedIds = new Set((data ?? []).map((r) => String(r.performance_id)));
+      emit();
+    } catch {
+      // Allow a later call to retry the load instead of getting stuck on
+      // a permanently "loaded" empty set.
+      loadedForUser = null;
+    }
   })();
   return inFlight;
 }
