@@ -22,5 +22,12 @@ backend; server components / route handlers use the Supabase server client.
 ## Known gaps (fuel for TASKS.md)
 - `/auth/callback` error handling is thin (missing code → throws instead of redirecting).
 - `src/app/artist/[name]/page.tsx` has no error handling on the Supabase fetch; a network failure causes an infinite spinner.
-- No sitemap, loading skeletons, or CSP headers yet.
+- `src/app/search/page.tsx` — `fetchPerformances` has no try/catch; errors are silent (empty results). Also no AbortController, so stale responses can race.
+- `src/app/venues/page.tsx` — no error handling or empty state on the Supabase fetch.
+- No CSP headers yet.
 - Env var validation is missing; bad config fails silently.
+- `Performance` and `WatchSource` interfaces are duplicated in `search/page.tsx` and `artist/[name]/page.tsx`; shared types module missing.
+- `savedStore` and `developer/layout.tsx` have zero unit tests.
+- No skip-to-content link; keyboard/screen-reader users must tab the full nav on every page.
+- `/profile` and `/developer` have no `noindex` metadata (robots.txt alone is insufficient for some indexers).
+- Developer dashboard queries are unbounded (no `.limit()`); will be slow on large tables.
