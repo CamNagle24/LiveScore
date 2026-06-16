@@ -19,7 +19,6 @@ Format: `- [ ] <title> — <acceptance criteria>`
 - [ ] Per-page metadata + OpenGraph — `generateMetadata` on key routes (home, profile, performance detail) with title/description/og tags.
 - [ ] Add unit tests for `src/lib/youtube.ts` (`getYouTubeThumbnail`, `getBestSource`) — cover YouTube/youtu.be URL variants, non-YouTube URLs, malformed/empty/null inputs, and verified-vs-unverified source ranking.
 - [ ] Add tests for the `useUser` auth store (`src/lib/useUser.ts`) — mock the Supabase client, cover initial `getUser` load, `onAuthStateChange` updates, and `useSignOut`.
-- [ ] Add a `not-found.tsx` for `src/app/artist/[name]/` — when an artist has no performances, show a friendly "not found" UI with a link back to search instead of an empty page.
 - [ ] Add a root `error.tsx` — catch render/runtime errors with a friendly fallback UI and a "try again" action instead of the default error overlay.
 - [ ] Add `robots.ts` and `sitemap.ts` (App Router file conventions) — sitemap covering static routes and dynamic `/artist/[name]` pages from Supabase, respecting `noindex` on `/profile` and `/developer`.
 - [ ] Add `loading.tsx` skeletons for `/search`, `/artists`, `/venues`, and `/profile` — show a skeleton/spinner while Supabase data loads instead of a blank page.
@@ -31,3 +30,4 @@ Format: `- [ ] <title> — <acceptance criteria>`
 <!-- routine PRs move completed items here -->
 - [x] Add CI workflow `.github/workflows/test.yml` — runs `npm ci`, typecheck, lint, build on PRs to main; green on the default branch.
 - [x] Per-page metadata + OpenGraph — `generateMetadata` on key routes (home, profile, performance detail) with title/description/og tags.
+- [x] Add a `not-found.tsx` for `src/app/artist/[name]/` — when an artist has no performances, show a friendly "not found" UI with a link back to search instead of an empty page.
