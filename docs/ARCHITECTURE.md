@@ -20,6 +20,7 @@ backend; server components / route handlers use the Supabase server client.
 - TypeScript strict. Server-side data access only; never expose service keys client-side.
 
 ## Known gaps (fuel for TASKS.md)
-- No automated tests yet (Vitest harness pending in PR #4).
-- `/auth/callback` error handling is thin.
-- No `not-found`/`error` boundaries, sitemap, or loading skeletons.
+- `/auth/callback` error handling is thin (missing code → throws instead of redirecting).
+- `src/app/artist/[name]/page.tsx` has no error handling on the Supabase fetch; a network failure causes an infinite spinner.
+- No sitemap, loading skeletons, or CSP headers yet.
+- Env var validation is missing; bad config fails silently.
