@@ -17,7 +17,6 @@ Format: `- [ ] <title> — <acceptance criteria>`
 > blocked: needs the Vitest harness (PR #4, not yet merged) to add the required test.
 - [ ] Add loading + error states to saved-performances flows — no unhandled rejections; user sees clear feedback on save/unsave failure.
 - [ ] Per-page metadata + OpenGraph — `generateMetadata` on key routes (home, profile, performance detail) with title/description/og tags.
-- [ ] Add unit tests for `src/lib/youtube.ts` (`getYouTubeThumbnail`, `getBestSource`) — cover YouTube/youtu.be URL variants, non-YouTube URLs, malformed/empty/null inputs, and verified-vs-unverified source ranking.
 - [ ] Add tests for the `useUser` auth store (`src/lib/useUser.ts`) — mock the Supabase client, cover initial `getUser` load, `onAuthStateChange` updates, and `useSignOut`.
 - [ ] Add a `not-found.tsx` for `src/app/artist/[name]/` — when an artist has no performances, show a friendly "not found" UI with a link back to search instead of an empty page.
 - [ ] Add a root `error.tsx` — catch render/runtime errors with a friendly fallback UI and a "try again" action instead of the default error overlay.
@@ -31,3 +30,4 @@ Format: `- [ ] <title> — <acceptance criteria>`
 <!-- routine PRs move completed items here -->
 - [x] Add CI workflow `.github/workflows/test.yml` — runs `npm ci`, typecheck, lint, build on PRs to main; green on the default branch.
 - [x] Per-page metadata + OpenGraph — `generateMetadata` on key routes (home, profile, performance detail) with title/description/og tags.
+- [x] Add unit tests for `src/lib/youtube.ts` (`getYouTubeThumbnail`, `getBestSource`) — cover YouTube/youtu.be URL variants, non-YouTube URLs, malformed/empty/null inputs, and verified-vs-unverified source ranking.
