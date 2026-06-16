@@ -3,25 +3,47 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
+const MAX_ARTIST = 100
+const MAX_EVENT = 150
+const MAX_LINK = 500
+
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export function SuggestFooter() {
   const [form, setForm] = useState({ artist: '', event: '', link: '' })
   const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.artist.trim()) return
-    setLoading(true)
+    if (submitting) return
+    const artistTrimmed = form.artist.trim()
+    if (!artistTrimmed) return
+
+    const linkTrimmed = form.link.trim()
+    if (linkTrimmed && !isValidHttpUrl(linkTrimmed)) {
+      setError('Link must be a valid http:// or https:// URL.')
+      return
+    }
+
+    setSubmitting(true)
     setError(null)
 
     const { error: err } = await supabase.from('suggestions').insert({
-      artist_name: form.artist.trim(),
+      artist_name: artistTrimmed,
       event_name: form.event.trim() || null,
-      link: form.link.trim() || null,
+      link: linkTrimmed || null,
     })
 
-    setLoading(false)
+    setSubmitting(false)
     if (err) {
       setError('Something went wrong. Try again.')
     } else {
@@ -67,6 +89,7 @@ export function SuggestFooter() {
                   type="text"
                   placeholder="Artist name *"
                   value={form.artist}
+                  maxLength={MAX_ARTIST}
                   onChange={e => setForm(f => ({ ...f, artist: e.target.value }))}
                   required
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px', fontFamily: 'var(--font-dm-sans, system-ui)', outline: 'none', transition: 'border-color 150ms' }}
@@ -77,15 +100,17 @@ export function SuggestFooter() {
                   type="text"
                   placeholder="Event or venue (optional)"
                   value={form.event}
+                  maxLength={MAX_EVENT}
                   onChange={e => setForm(f => ({ ...f, event: e.target.value }))}
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px', fontFamily: 'var(--font-dm-sans, system-ui)', outline: 'none', transition: 'border-color 150ms' }}
                   onFocus={e => e.currentTarget.style.borderColor = 'rgba(255,0,110,0.5)'}
                   onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
                 />
                 <input
-                  type="url"
+                  type="text"
                   placeholder="Link to video (optional)"
                   value={form.link}
+                  maxLength={MAX_LINK}
                   onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px', fontFamily: 'var(--font-dm-sans, system-ui)', outline: 'none', transition: 'border-color 150ms' }}
                   onFocus={e => e.currentTarget.style.borderColor = 'rgba(255,0,110,0.5)'}
@@ -98,10 +123,10 @@ export function SuggestFooter() {
                 )}
                 <button
                   type="submit"
-                  disabled={loading || !form.artist.trim()}
-                  style={{ background: loading ? 'rgba(255,0,110,0.3)' : 'linear-gradient(135deg,#FF006E,#FF3366)', border: 'none', borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', transition: 'all 150ms' }}
+                  disabled={submitting || !form.artist.trim()}
+                  style={{ background: submitting ? 'rgba(255,0,110,0.3)' : 'linear-gradient(135deg,#FF006E,#FF3366)', border: 'none', borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', transition: 'all 150ms' }}
                 >
-                  {loading ? 'Sending...' : 'Submit Suggestion'}
+                  {submitting ? 'Sending...' : 'Submit Suggestion'}
                 </button>
               </form>
             )}

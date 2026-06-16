@@ -19,7 +19,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 - [ ] Add `robots.ts` and `sitemap.ts` (App Router file conventions) — sitemap covering static routes and dynamic `/artist/[name]` pages fetched from Supabase; `noindex` on `/profile` and `/developer`.
 - [ ] Add `loading.tsx` skeletons for `/search`, `/artists`, `/venues`, and `/profile` — show a skeleton/spinner while Supabase data loads instead of a blank page.
 - [ ] Add `src/app/artist/[name]/loading.tsx` skeleton — a hero placeholder + grid of card skeletons that streams before the client component hydrates, replacing the spinner that currently only appears post-hydration.
-- [ ] Harden `SuggestFooter` submission (`src/components/SuggestFooter.tsx`) — validate non-empty artist name, max field lengths (artist ≤ 100 chars, event ≤ 150 chars, link ≤ 500 chars), and basic URL format for `link`; prevent duplicate rapid submissions with a `submitting` guard.
+- [x] Harden `SuggestFooter` submission (`src/components/SuggestFooter.tsx`) — validate non-empty artist name, max field lengths (artist ≤ 100 chars, event ≤ 150 chars, link ≤ 500 chars), and basic URL format for `link`; prevent duplicate rapid submissions with a `submitting` guard.
 - [ ] Add input validation + tests for `/api/artists/search` (`src/app/api/artists/search/route.ts`) — reject `q` longer than 100 chars or containing only whitespace; add `AbortSignal.timeout(5000)` to the upstream fetch; add tests mocking the AudioDB response (success, empty, non-OK, network error, timeout).
 - [ ] Add `global-error.tsx` for root layout errors — `error.tsx` does not catch errors thrown in the root layout; add `src/app/global-error.tsx` (Client Component with `<html>` and `<body>` tags, `unstable_retry` prop) per Next 16 docs.
 - [ ] Add `Content-Security-Policy` headers in `next.config.ts` — restrict `script-src`, `img-src` (allow `img.youtube.com`, `*.supabase.co`, `raw.githubusercontent.com`), and `connect-src` (Supabase URL, AudioDB) to reduce XSS blast radius.
@@ -29,5 +29,6 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Done
 <!-- routine PRs move completed items here -->
+- [x] Harden `SuggestFooter` submission (`src/components/SuggestFooter.tsx`) — validate non-empty artist name, max field lengths (artist ≤ 100 chars, event ≤ 150 chars, link ≤ 500 chars), and basic URL format for `link`; prevent duplicate rapid submissions with a `submitting` guard.
 - [x] Add CI workflow `.github/workflows/test.yml` — runs `npm ci`, typecheck, lint, build on PRs to main; green on the default branch.
 - [x] Per-page metadata + OpenGraph — `generateMetadata` on key routes (home, profile, performance detail) with title/description/og tags.
