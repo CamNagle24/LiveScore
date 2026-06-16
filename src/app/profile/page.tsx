@@ -241,10 +241,10 @@ export default function ProfilePage() {
   useEffect(() => {
     if (userLoading) return
     let active = true
-    setLoadError(false)
-    setLoading(true)
 
     const load = async () => {
+      setLoadError(false)
+      setLoading(true)
       if (!user) {
         if (active) { setSaved([]); setLoading(false) }
         return
