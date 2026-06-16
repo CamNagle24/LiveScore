@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getYouTubeThumbnail, getBestSource } from '@/lib/youtube'
 import { PageNav } from '@/components/PageNav'
@@ -172,6 +172,8 @@ export default function ArtistPage() {
     load()
   }, [artistName])
 
+  if (!loading && performances.length === 0) notFound()
+
   const totalSources = performances.reduce((acc, p) => acc + p.watch_sources.length, 0)
 
   return (
@@ -244,16 +246,6 @@ export default function ArtistPage() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '60px', gap: '12px', alignItems: 'center' }}>
               <div style={{ width: '22px', height: '22px', border: '2px solid rgba(255,0,110,0.3)', borderTopColor: '#FF006E', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-dm-sans, system-ui)' }}>Loading performances...</span>
-            </div>
-          ) : performances.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <div style={{ fontSize: '40px', opacity: 0.2, marginBottom: '16px' }}>♪</div>
-              <p style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-dm-sans, system-ui)', fontSize: '16px' }}>
-                No performances in the database yet for {artistName}.
-              </p>
-              <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '13px', marginTop: '6px', fontFamily: 'var(--font-dm-sans, system-ui)' }}>
-                Use the suggest form below to request one!
-              </p>
             </div>
           ) : (
             <>
