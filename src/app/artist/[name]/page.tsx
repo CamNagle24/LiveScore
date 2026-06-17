@@ -148,19 +148,25 @@ export default function ArtistPage() {
   const [performances, setPerformances] = useState<Performance[]>([])
   const [artistInfo, setArtistInfo] = useState<ArtistInfo | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [fanartErr, setFanartErr] = useState(false)
   const [thumbErr, setThumbErr] = useState(false)
 
   useEffect(() => {
     const load = async () => {
-      // Fetch performances from Supabase
-      const { data: perfs } = await supabase
-        .from('performances')
-        .select(`id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service)`)
-        .ilike('artist_name', artistName)
-        .order('performance_date', { ascending: false })
-      setPerformances((perfs as Performance[]) || [])
-      setLoading(false)
+      try {
+        const { data: perfs, error } = await supabase
+          .from('performances')
+          .select(`id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service)`)
+          .ilike('artist_name', artistName)
+          .order('performance_date', { ascending: false })
+        if (error) throw error
+        setPerformances((perfs as Performance[]) || [])
+      } catch {
+        setLoadError(true)
+      } finally {
+        setLoading(false)
+      }
 
       // Fetch artist info from TheAudioDB (free tier)
       try {
@@ -246,6 +252,12 @@ export default function ArtistPage() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '60px', gap: '12px', alignItems: 'center' }}>
               <div style={{ width: '22px', height: '22px', border: '2px solid rgba(255,0,110,0.3)', borderTopColor: '#FF006E', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-dm-sans, system-ui)' }}>Loading performances...</span>
+            </div>
+          ) : loadError ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px', gap: '16px' }}>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-dm-sans, system-ui)', fontSize: '15px', margin: 0 }}>
+                Couldn&apos;t load performances. Check your connection and try again.
+              </p>
             </div>
           ) : (
             <>
