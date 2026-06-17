@@ -10,10 +10,9 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Queue
 
-- [ ] Cover admin gating in `src/proxy.ts` — tests proving non-`ADMIN_EMAILS` users are blocked from `/developer` and admins are allowed; mock `@supabase/ssr` and `next/server`.
 - [ ] Harden `/auth/callback` error handling — handle missing/invalid `code`, surface a friendly error page (redirect to `/login?error=auth`) instead of throwing; add a test covering missing code, exchange failure, and success.
 - [ ] Add tests for the `useUser` auth store (`src/lib/useUser.ts`) — use `vi.mock` for `@/lib/supabase` and `next/navigation`; cover initial `getUser` load, `onAuthStateChange` updates, loading→resolved transition, and `useSignOut` redirect.
-- [x] Fix infinite spinner in artist page on Supabase error — `src/app/artist/[name]/page.tsx` doesn't catch a thrown Supabase query; add try/catch so `loading` is set to false and the user sees an error message instead of a stuck spinner.
+- [ ] Fix infinite spinner in artist page on Supabase error — `src/app/artist/[name]/page.tsx` doesn't catch a thrown Supabase query; add try/catch so `loading` is set to false and the user sees an error message instead of a stuck spinner.
 - [ ] Add tests for `SuggestFooter` (`src/components/SuggestFooter.tsx`) — mock Supabase, cover: submit button disabled when artist field is empty; successful insert shows thank-you state; Supabase error surfaces error text; "Suggest another" resets the form.
 - [ ] Add tests for `SaveButton` (`src/components/SaveButton.tsx`) — mock `useUser`, `useSavedIds`, `toggleSaved`; cover: unauthenticated click routes to `/login`; authenticated click calls `toggleSaved`; error shows tooltip; busy state blocks double-click.
 - [ ] Add `robots.ts` and `sitemap.ts` (App Router file conventions) — sitemap covering static routes and dynamic `/artist/[name]` pages fetched from Supabase; `noindex` on `/profile` and `/developer`.
@@ -29,6 +28,6 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Done
 <!-- routine PRs move completed items here -->
-- [x] Fix infinite spinner in artist page on Supabase error — `src/app/artist/[name]/page.tsx` doesn't catch a thrown Supabase query; add try/catch so `loading` is set to false and the user sees an error message instead of a stuck spinner.
+- [x] Cover admin gating in `src/proxy.ts` — tests proving non-`ADMIN_EMAILS` users are blocked from `/developer` and admins are allowed; mock `@supabase/ssr` and `next/server`.
 - [x] Add CI workflow `.github/workflows/test.yml` — runs `npm ci`, typecheck, lint, build on PRs to main; green on the default branch.
 - [x] Per-page metadata + OpenGraph — `generateMetadata` on key routes (home, profile, performance detail) with title/description/og tags.
