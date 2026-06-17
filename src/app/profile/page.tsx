@@ -233,6 +233,9 @@ export default function ProfilePage() {
   const { user, loading: userLoading } = useUser()
   const [saved, setSaved] = useState<Performance[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
+  const [removeError, setRemoveError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'saved' | 'stats'>('saved')
 
   useEffect(() => {
@@ -240,30 +243,45 @@ export default function ProfilePage() {
     let active = true
 
     const load = async () => {
+      setLoadError(false)
+      setLoading(true)
       if (!user) {
         if (active) { setSaved([]); setLoading(false) }
         return
       }
       ensureSavedLoaded(user.id)
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('saved_performances')
         .select(`performance:performances(id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service))`)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (!active) return
-      const rows = (data as { performance: Performance | null }[] | null) || []
+      if (error) { setLoadError(true); setLoading(false); return }
+      const rows = (data as unknown as { performance: Performance | null }[] | null) || []
       setSaved(rows.map(r => r.performance).filter((p): p is Performance => !!p))
       setLoading(false)
     }
     load()
     return () => { active = false }
-  }, [user, userLoading])
+  }, [user, userLoading, retryKey])
+
+  useEffect(() => {
+    if (!removeError) return
+    const t = setTimeout(() => setRemoveError(null), 3000)
+    return () => clearTimeout(t)
+  }, [removeError])
 
   const handleRemove = async (id: string) => {
-    setSaved(prev => prev.filter(p => p.id !== id))
+    const prev = saved
+    setSaved(s => s.filter(p => p.id !== id))
     if (user) {
-      try { await toggleSaved(id, user.id) } catch { /* already saved-store reverts */ }
+      try {
+        await toggleSaved(id, user.id)
+      } catch {
+        setSaved(prev)
+        setRemoveError("Couldn't remove. Try again.")
+      }
     }
   }
 
@@ -355,6 +373,13 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Remove-error toast */}
+        {removeError && (
+          <div role="alert" style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(20,0,10,0.95)', border: '1px solid rgba(255,0,110,0.4)', borderRadius: '10px', padding: '12px 20px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-dm-sans, system-ui)', zIndex: 100, boxShadow: '0 4px 20px rgba(0,0,0,0.6)', whiteSpace: 'nowrap' }}>
+            {removeError}
+          </div>
+        )}
+
         {/* Content */}
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px 80px' }}>
           {activeTab === 'saved' ? (
@@ -363,6 +388,17 @@ export default function ProfilePage() {
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '60px', gap: '12px', alignItems: 'center' }}>
                   <div style={{ width: '22px', height: '22px', border: '2px solid rgba(255,0,110,0.3)', borderTopColor: '#FF006E', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                   <span style={{ color: 'rgba(255,255,255,0.3)' }}>Loading saved performances...</span>
+                </div>
+              ) : loadError ? (
+                <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                  <div style={{ fontSize: '40px', opacity: 0.2, marginBottom: '16px' }}>!</div>
+                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '16px', marginBottom: '8px' }}>Couldn&apos;t load saved performances</p>
+                  <button
+                    onClick={() => setRetryKey(k => k + 1)}
+                    style={{ marginTop: '8px', background: 'linear-gradient(135deg,#FF006E,#FF3366)', border: 'none', borderRadius: '10px', padding: '10px 24px', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)' }}
+                  >
+                    Try again
+                  </button>
                 </div>
               ) : saved.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
