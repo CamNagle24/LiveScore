@@ -20,11 +20,12 @@ backend; server components / route handlers use the Supabase server client.
 - TypeScript strict. Server-side data access only; never expose service keys client-side.
 
 ## Known gaps (fuel for TASKS.md)
-- No sitemap, loading skeletons, or CSP headers yet.
-- Env var validation is missing; bad config fails silently.
-- `Performance` and `WatchSource` types are duplicated between `artist/[name]/page.tsx` and `search/page.tsx`; should be extracted to `src/types/performance.ts`.
-- `src/app/search/page.tsx` `fetchPerformances` has no error handling (silent empty results on Supabase error).
+- No CSP headers yet; env var validation is missing (bad config fails silently).
 - `src/app/search/page.tsx` has no AbortController; stale responses can race newer ones.
-- `src/app/global-error.tsx` is missing; root layout errors are uncaught.
 - `SuggestFooter` inputs lack `aria-label`; placeholder text alone is insufficient for accessibility.
-- `savedStore` and `developer/layout.tsx` have no test coverage.
+- `/api/artists/search` has no input validation (unbounded `q`) or upstream fetch timeout.
+- `src/app/artists/page.tsx` ignores the Supabase `error` object, same silent-failure class already fixed in `/search` and `/artist/[name]`.
+- `ArtistCard` (`artists/page.tsx`) and `VenueCard` (`venues/page.tsx`) are click-only `<div>`s with no keyboard support, unlike the ARIA work planned for search-page cards.
+- No test coverage for `/artists`, `/venues`, `sitemap.ts`, or `error.tsx`.
+- Raw `<img>` tags throughout (`search`, `artist/[name]`, `artists`, `profile`) trigger `next/image` LCP lint warnings; unmigrated.
+- Search results are unbounded by pagination beyond the initial `.limit(50)`.
