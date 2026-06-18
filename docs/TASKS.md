@@ -17,7 +17,6 @@ Format: `- [ ] <title> — <acceptance criteria>`
 - [ ] Add tests for `SaveButton` (`src/components/SaveButton.tsx`) — mock `useUser`, `useSavedIds`, `toggleSaved`; cover: unauthenticated click routes to `/login`; authenticated click calls `toggleSaved`; error shows tooltip; busy state blocks double-click.
 - [ ] Add unit tests for `savedStore` (`src/lib/savedStore.ts`) — no test coverage exists; mock `@/lib/supabase`; cover: `ensureSavedLoaded` populates `savedIds` and deduplicates; duplicate call before first resolves returns the same promise; `toggleSaved` optimistically updates then reverts and rethrows on Supabase error; `resetSaved` clears all state and allows a fresh load.
 - [ ] Fix silent Supabase error in `src/app/search/page.tsx` — `fetchPerformances` has no try/catch; a thrown error leaves `loading:false` with empty results and zero user feedback; add try/catch and a `searchError` state that shows an inline error banner beneath the search box.
-- [ ] Extract shared types to `src/types/performance.ts` — `src/app/artist/[name]/page.tsx` and `src/app/search/page.tsx` both define identical `Performance` and `WatchSource` interfaces; move them to a shared module and import from there to prevent type drift.
 - [ ] Add `global-error.tsx` for root layout errors — `src/app/error.tsx` catches errors in nested routes but not in the root layout itself; add `src/app/global-error.tsx` as a Client Component with `<html>` and `<body>` tags and the `unstable_retry` prop per Next 16 docs.
 - [ ] Add AbortController cancellation to search fetch in `src/app/search/page.tsx` — the 400ms debounce prevents excess calls but does not cancel in-flight requests; a slow response can overwrite a newer one; pass `AbortSignal` to the Supabase query and discard stale results.
 - [ ] Add `aria-label` to `SuggestFooter` inputs — the three inputs rely solely on placeholder text which disappears on focus; add `aria-label` to each field and `aria-required="true"` on the artist name field so screen readers announce field purpose when focused.
@@ -44,6 +43,7 @@ Format: `- [ ] <title> — <acceptance criteria>`
 
 ## Done
 <!-- routine PRs move completed items here -->
+- [x] Extract shared types to `src/types/performance.ts` — `src/app/artist/[name]/page.tsx` and `src/app/search/page.tsx` both define identical `Performance` and `WatchSource` interfaces; move them to a shared module and import from there to prevent type drift.
 - [x] Cover admin gating in `src/proxy.ts` — tests proving non-`ADMIN_EMAILS` users are blocked from `/developer` and admins are allowed; mock `@supabase/ssr` and `next/server`.
 - [x] Add CI workflow `.github/workflows/test.yml` — runs `npm ci`, typecheck, lint, build on PRs to main; green on the default branch.
 - [x] Per-page metadata + OpenGraph — `generateMetadata` on key routes (home, profile, performance detail) with title/description/og tags.
