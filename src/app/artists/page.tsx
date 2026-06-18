@@ -82,31 +82,38 @@ type ArtistSort = 'count' | 'az' | 'za'
 export default function ArtistsPage() {
   const [artists, setArtists] = useState<ArtistEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [filter, setFilter] = useState('')
   const [sort, setSort] = useState<ArtistSort>('count')
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
-        .from('performances')
-        .select('artist_name')
-        .order('artist_name', { ascending: true })
+      let entries: ArtistEntry[] = []
+      try {
+        const { data, error } = await supabase
+          .from('performances')
+          .select('artist_name')
+          .order('artist_name', { ascending: true })
+        if (error) throw error
 
-      if (!data) { setLoading(false); return }
+        // Count and deduplicate
+        const counts: Record<string, number> = {}
+        for (const row of data ?? []) {
+          if (!row.artist_name) continue
+          counts[row.artist_name] = (counts[row.artist_name] || 0) + 1
+        }
 
-      // Count and deduplicate
-      const counts: Record<string, number> = {}
-      for (const row of data) {
-        if (!row.artist_name) continue
-        counts[row.artist_name] = (counts[row.artist_name] || 0) + 1
+        entries = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([name, count]) => ({ name, count, thumb: null }))
+
+        setArtists(entries)
+      } catch {
+        setLoadError(true)
+        return
+      } finally {
+        setLoading(false)
       }
-
-      const entries: ArtistEntry[] = Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([name, count]) => ({ name, count, thumb: null }))
-
-      setArtists(entries)
-      setLoading(false)
 
       // Enrich with TheAudioDB thumbnails. Fetch with bounded concurrency
       // (rather than one request per artist at once) so we don't overwhelm
@@ -192,6 +199,12 @@ export default function ArtistsPage() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '60px', gap: '12px', alignItems: 'center' }}>
               <div style={{ width: '22px', height: '22px', border: '2px solid rgba(255,0,110,0.3)', borderTopColor: '#FF006E', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               <span style={{ color: 'rgba(255,255,255,0.3)' }}>Loading artists...</span>
+            </div>
+          ) : loadError ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '15px' }}>
+                Couldn&apos;t load artists. Check your connection and try again.
+              </p>
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
