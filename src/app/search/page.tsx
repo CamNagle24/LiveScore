@@ -8,26 +8,7 @@ import { PageNav } from '@/components/PageNav'
 import { SuggestFooter } from '@/components/SuggestFooter'
 import { PlatformBadge } from '@/components/PlatformBadge'
 import { SaveButton } from '@/components/SaveButton'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface WatchSource {
-  id: number
-  url: string
-  source_status: string
-  subscription_service: string | null
-}
-
-interface Performance {
-  id: string
-  artist_name: string
-  event_name: string | null
-  venue_name: string | null
-  performance_date: string | null
-  performance_type: string | null
-  duration_minutes: number | null
-  watch_sources: WatchSource[]
-}
+import type { Performance } from '@/types/performance'
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 
@@ -136,26 +117,34 @@ function SearchPageInner() {
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [performances, setPerformances] = useState<Performance[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [sort, setSort] = useState<PerfSort>('newest')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchPerformances = async (q: string) => {
     setLoading(true)
-    let queryBuilder = supabase
-      .from('performances')
-      .select(`id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service)`)
-      .order('performance_date', { ascending: false })
-      .limit(50)
+    setSearchError(null)
+    try {
+      let queryBuilder = supabase
+        .from('performances')
+        .select(`id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service)`)
+        .order('performance_date', { ascending: false })
+        .limit(50)
 
-    if (q.trim()) {
-      queryBuilder = queryBuilder.or(
-        `artist_name.ilike.%${q.trim()}%,event_name.ilike.%${q.trim()}%,venue_name.ilike.%${q.trim()}%`
-      )
+      if (q.trim()) {
+        queryBuilder = queryBuilder.or(
+          `artist_name.ilike.%${q.trim()}%,event_name.ilike.%${q.trim()}%,venue_name.ilike.%${q.trim()}%`
+        )
+      }
+
+      const { data, error } = await queryBuilder
+      if (error) throw error
+      setPerformances((data as Performance[]) || [])
+    } catch {
+      setSearchError('Something went wrong loading performances. Try again.')
+    } finally {
+      setLoading(false)
     }
-
-    const { data } = await queryBuilder
-    setPerformances((data as Performance[]) || [])
-    setLoading(false)
   }
 
   // Load on mount (query state is already seeded from the URL param)
@@ -211,6 +200,12 @@ function SearchPageInner() {
               <div style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-dm-sans, system-ui)', fontWeight: 500, letterSpacing: '0.05em' }}>↵</div>
             )}
           </div>
+
+          {searchError && (
+            <div style={{ maxWidth: '600px', margin: '14px auto 0', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: '10px', padding: '10px 16px', color: '#ff6b6b', fontSize: '13px', fontFamily: 'var(--font-dm-sans, system-ui)' }}>
+              {searchError}
+            </div>
+          )}
         </div>
 
         {/* Results */}
