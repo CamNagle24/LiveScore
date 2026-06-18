@@ -20,14 +20,12 @@ backend; server components / route handlers use the Supabase server client.
 - TypeScript strict. Server-side data access only; never expose service keys client-side.
 
 ## Known gaps (fuel for TASKS.md)
-- `/auth/callback` error handling is thin (missing code → throws instead of redirecting).
-- `src/app/artist/[name]/page.tsx` has no error handling on the Supabase fetch; a network failure causes an infinite spinner.
-- `src/app/search/page.tsx` — `fetchPerformances` has no try/catch; errors are silent (empty results). Also no AbortController, so stale responses can race.
-- `src/app/venues/page.tsx` — no error handling or empty state on the Supabase fetch.
-- No CSP headers yet.
-- Env var validation is missing; bad config fails silently.
-- `Performance` and `WatchSource` interfaces are duplicated in `search/page.tsx` and `artist/[name]/page.tsx`; shared types module missing.
-- `savedStore` and `developer/layout.tsx` have zero unit tests.
-- No skip-to-content link; keyboard/screen-reader users must tab the full nav on every page.
-- `/profile` and `/developer` have no `noindex` metadata (robots.txt alone is insufficient for some indexers).
-- Developer dashboard queries are unbounded (no `.limit()`); will be slow on large tables.
+- No CSP headers yet; env var validation is missing (bad config fails silently).
+- `src/app/search/page.tsx` has no AbortController; stale responses can race newer ones.
+- `SuggestFooter` inputs lack `aria-label`; placeholder text alone is insufficient for accessibility.
+- `/api/artists/search` has no input validation (unbounded `q`) or upstream fetch timeout.
+- `src/app/artists/page.tsx` ignores the Supabase `error` object, same silent-failure class already fixed in `/search` and `/artist/[name]`.
+- `ArtistCard` (`artists/page.tsx`) and `VenueCard` (`venues/page.tsx`) are click-only `<div>`s with no keyboard support, unlike the ARIA work planned for search-page cards.
+- No test coverage for `/artists`, `/venues`, `sitemap.ts`, or `error.tsx`.
+- Raw `<img>` tags throughout (`search`, `artist/[name]`, `artists`, `profile`) trigger `next/image` LCP lint warnings; unmigrated.
+- Search results are unbounded by pagination beyond the initial `.limit(50)`.
