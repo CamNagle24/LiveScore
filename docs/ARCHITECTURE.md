@@ -20,11 +20,14 @@ backend; server components / route handlers use the Supabase server client.
 - TypeScript strict. Server-side data access only; never expose service keys client-side.
 
 ## Known gaps (fuel for TASKS.md)
-- No sitemap, loading skeletons, or CSP headers yet.
+- `/auth/callback` error handling is thin (missing code → throws instead of redirecting).
+- `src/app/artist/[name]/page.tsx` has no error handling on the Supabase fetch; a network failure causes an infinite spinner.
+- `src/app/search/page.tsx` — `fetchPerformances` has no try/catch; errors are silent (empty results). Also no AbortController, so stale responses can race.
+- `src/app/venues/page.tsx` — no error handling or empty state on the Supabase fetch.
+- No CSP headers yet.
 - Env var validation is missing; bad config fails silently.
-- `Performance` and `WatchSource` types are duplicated between `artist/[name]/page.tsx` and `search/page.tsx`; should be extracted to `src/types/performance.ts`.
-- `src/app/search/page.tsx` `fetchPerformances` has no error handling (silent empty results on Supabase error).
-- `src/app/search/page.tsx` has no AbortController; stale responses can race newer ones.
-- `src/app/global-error.tsx` is missing; root layout errors are uncaught.
-- `SuggestFooter` inputs lack `aria-label`; placeholder text alone is insufficient for accessibility.
-- `savedStore` and `developer/layout.tsx` have no test coverage.
+- `Performance` and `WatchSource` interfaces are duplicated in `search/page.tsx` and `artist/[name]/page.tsx`; shared types module missing.
+- `savedStore` and `developer/layout.tsx` have zero unit tests.
+- No skip-to-content link; keyboard/screen-reader users must tab the full nav on every page.
+- `/profile` and `/developer` have no `noindex` metadata (robots.txt alone is insufficient for some indexers).
+- Developer dashboard queries are unbounded (no `.limit()`); will be slow on large tables.
