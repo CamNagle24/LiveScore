@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         pathname: "/CamNagle24/LiveListenPhotos/**",
         search: "?raw=true",
       },
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+        pathname: "/vi/**",
+      },
     ],
   },
 };
