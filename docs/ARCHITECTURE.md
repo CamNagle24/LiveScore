@@ -20,12 +20,16 @@ backend; server components / route handlers use the Supabase server client.
 - TypeScript strict. Server-side data access only; never expose service keys client-side.
 
 ## Known gaps (fuel for TASKS.md)
-- No CSP headers yet; env var validation is missing (bad config fails silently).
-- `src/app/search/page.tsx` has no AbortController; stale responses can race newer ones.
-- `SuggestFooter` inputs lack `aria-label`; placeholder text alone is insufficient for accessibility.
-- `/api/artists/search` has no input validation (unbounded `q`) or upstream fetch timeout.
-- `src/app/artists/page.tsx` ignores the Supabase `error` object, same silent-failure class already fixed in `/search` and `/artist/[name]`.
-- `ArtistCard` (`artists/page.tsx`) and `VenueCard` (`venues/page.tsx`) are click-only `<div>`s with no keyboard support, unlike the ARIA work planned for search-page cards.
-- No test coverage for `/artists`, `/venues`, `sitemap.ts`, or `error.tsx`.
-- Raw `<img>` tags throughout (`search`, `artist/[name]`, `artists`, `profile`) trigger `next/image` LCP lint warnings; unmigrated.
-- Search results are unbounded by pagination beyond the initial `.limit(50)`.
+- **PR backlog is the actual bottleneck, not task supply.** As of this grooming pass, 16 `[routine]`
+  PRs (#32–#47) are open and unmerged, the oldest since 2026-06-18 — every item already in the
+  Queue has either an open PR/branch against it or (for 3 entries) was already shipped on `main`
+  without the Queue being ticked off. The work loop found **zero eligible tasks** this run and
+  also found zero last run (#47). Grooming alone can't fix this — the bottleneck is review/merge
+  throughput. Recommend triaging and merging (or closing) the open PRs before the next run, and
+  reconciling the duplicate grooming PRs (#42, #47, and this one) into `docs/TASKS.md` once one lands.
+- No test coverage for `src/lib/supabase.ts`'s lazy Proxy-based singleton client.
+- No "skip to main content" link or `<main>` landmark in `RootLayout` — `<body>` renders `children`
+  directly.
+- `next.config.ts` doesn't set `poweredByHeader: false`; responses leak `X-Powered-By: Next.js`.
+- `robots.ts` doesn't disallow `/api/`.
+- Raw `<img>` tags remain in `artist/[name]`, `artists`, and `profile` (search page's is mid-PR in #46).
