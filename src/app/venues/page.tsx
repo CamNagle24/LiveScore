@@ -38,10 +38,19 @@ function VenueCard({ venue, delay }: { venue: VenueEntry; delay: number }) {
   return (
     <div
       className="venue-card"
+      role="link"
+      tabIndex={0}
+      aria-label={`Browse performances at ${venue.name}`}
       style={{ animationDelay: `${delay}ms`, cursor: 'pointer', borderRadius: '16px', overflow: 'hidden', background: 'rgba(255,255,255,0.04)', border: `1px solid ${hovered ? 'rgba(0,245,255,0.3)' : 'rgba(255,255,255,0.07)'}`, transform: hovered ? 'translateY(-4px)' : 'none', boxShadow: hovered ? '0 16px 40px rgba(0,0,0,0.5)' : 'none', transition: 'all 200ms ease', padding: '24px' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => router.push(`/search?q=${encodeURIComponent(venue.name)}`)}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          router.push(`/search?q=${encodeURIComponent(venue.name)}`)
+        }
+      }}
     >
       {/* Icon */}
       <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: hovered ? 'rgba(0,245,255,0.12)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '16px', transition: 'background 200ms', border: '1px solid rgba(255,255,255,0.08)' }}>

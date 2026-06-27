@@ -122,8 +122,13 @@ function SearchPageInner() {
   const [searchError, setSearchError] = useState<string | null>(null)
   const [sort, setSort] = useState<PerfSort>('newest')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const fetchPerformances = async (q: string) => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setLoading(true)
     setSearchError(null)
     try {
@@ -132,6 +137,7 @@ function SearchPageInner() {
         .select(`id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service)`)
         .order('performance_date', { ascending: false })
         .limit(50)
+        .abortSignal(controller.signal)
 
       if (q.trim()) {
         queryBuilder = queryBuilder.or(
@@ -140,12 +146,14 @@ function SearchPageInner() {
       }
 
       const { data, error } = await queryBuilder
+      if (controller.signal.aborted) return
       if (error) throw error
       setPerformances((data as Performance[]) || [])
     } catch {
+      if (controller.signal.aborted) return
       setSearchError('Something went wrong loading performances. Try again.')
     } finally {
-      setLoading(false)
+      if (!controller.signal.aborted) setLoading(false)
     }
   }
 
@@ -155,6 +163,7 @@ function SearchPageInner() {
       await fetchPerformances(searchParams.get('q') || '')
     }
     load()
+    return () => abortRef.current?.abort()
   }, [])
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
