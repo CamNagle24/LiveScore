@@ -22,6 +22,14 @@ describe("SuggestFooter", () => {
     expect(btn).toBeDisabled();
   });
 
+  it("exposes aria-labels for screen readers and marks artist as required", () => {
+    render(<SuggestFooter />);
+    const artist = screen.getByLabelText("Artist name");
+    expect(artist).toHaveAttribute("aria-required", "true");
+    expect(screen.getByLabelText("Event or venue")).toBeInTheDocument();
+    expect(screen.getByLabelText("Link to video")).toBeInTheDocument();
+  });
+
   it("enables the submit button once the artist field has text", () => {
     render(<SuggestFooter />);
     fireEvent.change(screen.getByPlaceholderText(/artist name/i), {
