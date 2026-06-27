@@ -26,12 +26,34 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
   const builder: PromiseLike<typeof result> & Record<string, unknown> = {
     select: () => builder,
     order: () => builder,
-    limit: () => builder,
+    range: () => builder,
     or: () => builder,
     abortSignal: () => builder,
     then: (resolve, reject) => Promise.resolve(result).then(resolve, reject),
   };
   return builder;
+}
+
+function makeSequencedBuilder(results: { data: unknown; error: unknown }[]) {
+  let call = 0;
+  return () => {
+    const result = results[Math.min(call, results.length - 1)];
+    call += 1;
+    return makeBuilder(result);
+  };
+}
+
+function makePerformance(id: string) {
+  return {
+    id,
+    artist_name: `Artist ${id}`,
+    event_name: `Event ${id}`,
+    venue_name: 'Venue',
+    performance_date: '2024-01-01',
+    performance_type: 'concert',
+    duration_minutes: 60,
+    watch_sources: [],
+  };
 }
 
 beforeEach(() => {
@@ -62,6 +84,40 @@ describe("SearchPage — fetchPerformances error handling", () => {
     expect(
       screen.queryByText(/something went wrong loading performances/i)
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("SearchPage — pagination", () => {
+  it("shows a Load more button when a full page of results is returned, and appends the next page on click", async () => {
+    const firstPage = Array.from({ length: 24 }, (_, i) => makePerformance(`p${i}`));
+    const secondPage = [makePerformance("p24"), makePerformance("p25")];
+    mockFrom.mockImplementation(
+      makeSequencedBuilder([
+        { data: firstPage, error: null },
+        { data: secondPage, error: null },
+      ])
+    );
+
+    render(<SearchPage />);
+
+    await waitFor(() => expect(screen.getByText("24 PERFORMANCES")).toBeInTheDocument());
+    const loadMoreButton = screen.getByRole("button", { name: /load more/i });
+    expect(loadMoreButton).toBeInTheDocument();
+
+    loadMoreButton.click();
+
+    await waitFor(() => expect(screen.getByText("26 PERFORMANCES")).toBeInTheDocument());
+  });
+
+  it("hides the Load more button when fewer than a full page of results is returned", async () => {
+    mockFrom.mockReturnValue(
+      makeBuilder({ data: [makePerformance("p0")], error: null })
+    );
+
+    render(<SearchPage />);
+
+    await waitFor(() => expect(screen.getByText("1 PERFORMANCES")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /load more/i })).not.toBeInTheDocument();
   });
 });
 
@@ -127,6 +183,7 @@ describe("SearchPage — stale request cancellation", () => {
       select: () => staleBuilder,
       order: () => staleBuilder,
       limit: () => staleBuilder,
+      range: () => staleBuilder,
       or: () => staleBuilder,
       abortSignal: () => staleBuilder,
       then: (resolve, reject) =>

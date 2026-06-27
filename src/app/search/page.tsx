@@ -127,29 +127,38 @@ function PerformanceCard({ p, delay }: { p: Performance; delay: number }) {
 
 type PerfSort = 'newest' | 'oldest' | 'az' | 'sources'
 
+const PAGE_SIZE = 24
+
 function SearchPageInner() {
   const searchParams = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [performances, setPerformances] = useState<Performance[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [sort, setSort] = useState<PerfSort>('newest')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  const fetchPerformances = async (q: string) => {
+  const fetchPerformances = async (q: string, pageNum = 0) => {
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
 
-    setLoading(true)
+    if (pageNum === 0) setLoading(true)
+    else setLoadingMore(true)
     setSearchError(null)
     try {
+      const from = pageNum * PAGE_SIZE
+      const to = from + PAGE_SIZE - 1
+
       let queryBuilder = supabase
         .from('performances')
         .select(`id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service)`)
         .order('performance_date', { ascending: false })
-        .limit(50)
+        .range(from, to)
         .abortSignal(controller.signal)
 
       if (q.trim()) {
@@ -161,12 +170,19 @@ function SearchPageInner() {
       const { data, error } = await queryBuilder
       if (controller.signal.aborted) return
       if (error) throw error
-      setPerformances((data as Performance[]) || [])
+      const rows = (data as Performance[]) || []
+      setPerformances(prev => (pageNum === 0 ? rows : [...prev, ...rows]))
+      setHasMore(rows.length === PAGE_SIZE)
+      setPage(pageNum)
     } catch {
       if (controller.signal.aborted) return
       setSearchError('Something went wrong loading performances. Try again.')
+      if (pageNum === 0) setPerformances([])
     } finally {
-      if (!controller.signal.aborted) setLoading(false)
+      if (!controller.signal.aborted) {
+        setLoading(false)
+        setLoadingMore(false)
+      }
     }
   }
 
@@ -183,15 +199,17 @@ function SearchPageInner() {
     const val = e.target.value
     setQuery(val)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => fetchPerformances(val), 400)
+    debounceRef.current = setTimeout(() => fetchPerformances(val, 0), 400)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       if (debounceRef.current) clearTimeout(debounceRef.current)
-      fetchPerformances(query)
+      fetchPerformances(query, 0)
     }
   }
+
+  const handleLoadMore = () => fetchPerformances(query, page + 1)
 
   return (
     <>
@@ -260,6 +278,18 @@ function SearchPageInner() {
               }).map((p, i) => (
                 <PerformanceCard key={p.id} p={p} delay={i * 30} />
               ))}
+            </div>
+          )}
+
+          {!loading && hasMore && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '28px' }}>
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '10px', padding: '10px 24px', color: '#fff', fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-dm-sans, system-ui)', cursor: loadingMore ? 'default' : 'pointer', opacity: loadingMore ? 0.6 : 1, transition: 'opacity 150ms' }}
+              >
+                {loadingMore ? 'Loading…' : 'Load more'}
+              </button>
             </div>
           )}
 
