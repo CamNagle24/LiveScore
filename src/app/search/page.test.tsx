@@ -121,6 +121,61 @@ describe("SearchPage — pagination", () => {
   });
 });
 
+describe("SearchPage — performance card accessibility", () => {
+  const performance = {
+    id: "1",
+    artist_name: "Radiohead",
+    event_name: "Glastonbury 2003",
+    venue_name: "Glastonbury",
+    performance_date: "2003-06-27",
+    performance_type: "festival",
+    duration_minutes: 90,
+    watch_sources: [
+      {
+        id: 1,
+        url: "https://youtube.com/watch?v=abc",
+        source_status: "verified",
+        subscription_service: null,
+      },
+    ],
+  };
+
+  it("exposes a role=button + aria-label and opens the source on Enter", async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [performance], error: null }));
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    render(<SearchPage />);
+
+    const card = await screen.findByRole("button", {
+      name: "Watch Glastonbury 2003 by Radiohead",
+    });
+    card.focus();
+    fireEvent.keyDown(card, { key: "Enter" });
+
+    expect(openSpy).toHaveBeenCalledWith(
+      "https://youtube.com/watch?v=abc",
+      "_blank",
+      "noopener,noreferrer"
+    );
+  });
+
+  it("does not expose interactive semantics when there is no watchable source", async () => {
+    mockFrom.mockReturnValue(
+      makeBuilder({
+        data: [{ ...performance, watch_sources: [] }],
+        error: null,
+      })
+    );
+
+    render(<SearchPage />);
+
+    await waitFor(() => expect(mockFrom).toHaveBeenCalled());
+    expect(
+      screen.queryByRole("button", { name: /watch/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("SearchPage — stale request cancellation", () => {
   it("discards a slow in-flight response once a newer search supersedes it", async () => {
     let resolveStale!: (v: { data: unknown; error: null }) => void;

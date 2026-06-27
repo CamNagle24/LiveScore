@@ -52,13 +52,26 @@ function PerformanceCard({ p, delay }: { p: Performance; delay: number }) {
     }
   }
 
+  const openBestSource = () => best && window.open(best.url, '_blank', 'noopener,noreferrer')
+
   return (
     <div
       className="perf-card"
       style={{ animationDelay: `${delay}ms`, cursor: 'pointer', borderRadius: '14px', overflow: 'hidden', background: 'rgba(255,255,255,0.04)', border: `1px solid ${hovered ? 'rgba(255,0,110,0.3)' : 'rgba(255,255,255,0.07)'}`, transform: hovered ? 'translateY(-4px)' : 'none', boxShadow: hovered ? '0 20px 40px rgba(0,0,0,0.5)' : 'none', transition: 'all 200ms ease' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => best && window.open(best.url, '_blank', 'noopener,noreferrer')}
+      onClick={openBestSource}
+      {...(best ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': `Watch ${p.event_name || `${p.artist_name} Live`} by ${p.artist_name}`,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            openBestSource()
+          }
+        },
+      } : {})}
     >
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
@@ -79,7 +92,7 @@ function PerformanceCard({ p, delay }: { p: Performance; delay: number }) {
         )}
         {/* Play button */}
         {hovered && best && (
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '44px', height: '44px', background: 'rgba(255,0,110,0.9)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: '#fff' }}>▶</div>
+          <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '44px', height: '44px', background: 'rgba(255,0,110,0.9)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: '#fff' }}>▶</div>
         )}
         {/* Save toggle */}
         <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
