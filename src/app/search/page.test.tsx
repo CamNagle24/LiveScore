@@ -118,6 +118,8 @@ describe("SearchPage — pagination", () => {
 
     await waitFor(() => expect(screen.getByText("1 PERFORMANCES")).toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /load more/i })).not.toBeInTheDocument();
+  });
+});
 
 describe("SearchPage — stale request cancellation", () => {
   it("discards a slow in-flight response once a newer search supersedes it", async () => {
