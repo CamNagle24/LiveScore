@@ -183,6 +183,7 @@ describe("SearchPage — stale request cancellation", () => {
       select: () => staleBuilder,
       order: () => staleBuilder,
       limit: () => staleBuilder,
+      range: () => staleBuilder,
       or: () => staleBuilder,
       abortSignal: () => staleBuilder,
       then: (resolve, reject) =>
