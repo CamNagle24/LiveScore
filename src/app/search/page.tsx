@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { getYouTubeThumbnail, getBestSource } from '@/lib/youtube'
 import { PageNav } from '@/components/PageNav'
@@ -62,8 +63,9 @@ function PerformanceCard({ p, delay }: { p: Performance; delay: number }) {
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
         {thumbSrc ? (
-          <img src={thumbSrc} alt={p.event_name || p.artist_name} onError={handleThumbErr}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.05)' : 'scale(1)', transition: 'transform 300ms ease' }} />
+          <Image src={thumbSrc} alt={p.event_name || p.artist_name} onError={handleThumbErr} fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+            style={{ objectFit: 'cover', transform: hovered ? 'scale(1.05)' : 'scale(1)', transition: 'transform 300ms ease' }} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', color: 'rgba(255,255,255,0.08)' }}>♪</div>
         )}
@@ -125,8 +127,13 @@ function SearchPageInner() {
   const [searchError, setSearchError] = useState<string | null>(null)
   const [sort, setSort] = useState<PerfSort>('newest')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const fetchPerformances = async (q: string, pageNum = 0) => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     if (pageNum === 0) setLoading(true)
     else setLoadingMore(true)
     setSearchError(null)
@@ -139,6 +146,7 @@ function SearchPageInner() {
         .select(`id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service)`)
         .order('performance_date', { ascending: false })
         .range(from, to)
+        .abortSignal(controller.signal)
 
       if (q.trim()) {
         queryBuilder = queryBuilder.or(
@@ -147,17 +155,21 @@ function SearchPageInner() {
       }
 
       const { data, error } = await queryBuilder
+      if (controller.signal.aborted) return
       if (error) throw error
       const rows = (data as Performance[]) || []
       setPerformances(prev => (pageNum === 0 ? rows : [...prev, ...rows]))
       setHasMore(rows.length === PAGE_SIZE)
       setPage(pageNum)
     } catch {
+      if (controller.signal.aborted) return
       setSearchError('Something went wrong loading performances. Try again.')
       if (pageNum === 0) setPerformances([])
     } finally {
-      setLoading(false)
-      setLoadingMore(false)
+      if (!controller.signal.aborted) {
+        setLoading(false)
+        setLoadingMore(false)
+      }
     }
   }
 
@@ -167,6 +179,7 @@ function SearchPageInner() {
       await fetchPerformances(searchParams.get('q') || '')
     }
     load()
+    return () => abortRef.current?.abort()
   }, [])
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
