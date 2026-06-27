@@ -88,6 +88,8 @@ export function SuggestFooter() {
                 <input
                   type="text"
                   placeholder="Artist name *"
+                  aria-label="Artist name"
+                  aria-required="true"
                   value={form.artist}
                   maxLength={MAX_ARTIST}
                   onChange={e => setForm(f => ({ ...f, artist: e.target.value }))}
@@ -99,6 +101,7 @@ export function SuggestFooter() {
                 <input
                   type="text"
                   placeholder="Event or venue (optional)"
+                  aria-label="Event or venue"
                   value={form.event}
                   maxLength={MAX_EVENT}
                   onChange={e => setForm(f => ({ ...f, event: e.target.value }))}
@@ -109,6 +112,7 @@ export function SuggestFooter() {
                 <input
                   type="text"
                   placeholder="Link to video (optional)"
+                  aria-label="Link to video"
                   value={form.link}
                   maxLength={MAX_LINK}
                   onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
