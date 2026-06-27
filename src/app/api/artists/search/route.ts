@@ -14,10 +14,15 @@ interface AudioDBResponse {
   artists: AudioDBArtist[] | null
 }
 
+const MAX_QUERY_LENGTH = 100
+
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')?.trim()
   if (!q) {
     return Response.json({ artists: [] })
+  }
+  if (q.length > MAX_QUERY_LENGTH) {
+    return Response.json({ artists: [] }, { status: 400 })
   }
 
   try {
@@ -25,6 +30,7 @@ export async function GET(request: NextRequest) {
     const res = await fetch(url, {
       headers: { 'User-Agent': 'LiveScore/1.0' },
       next: { revalidate: 3600 }, // cache 1hr
+      signal: AbortSignal.timeout(5000),
     })
 
     if (!res.ok) {
