@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -29,6 +29,88 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
   };
   return builder;
 }
+
+function rowsFor(names: (string | null)[]) {
+  return names.map(artist_name => ({ artist_name }));
+}
+
+beforeEach(() => {
+  mockGetUser.mockResolvedValue({ data: { user: null } });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({ json: async () => ({ artists: [] }) })
+  );
+});
+
+describe("ArtistsPage", () => {
+  it("counts and dedupes artist names from performances", async () => {
+    mockFrom.mockReturnValue(
+      makeBuilder({
+        data: rowsFor(["Beyonce", "Beyonce", "Adele", null]),
+        error: null,
+      })
+    );
+
+    render(<ArtistsPage />);
+
+    await waitFor(() => expect(screen.getByText("Beyonce")).toBeInTheDocument());
+    expect(screen.getByText("2 performances")).toBeInTheDocument();
+    expect(screen.getByText("Adele")).toBeInTheDocument();
+    expect(screen.getByText("1 performance")).toBeInTheDocument();
+  });
+
+  it("sorts by most performances by default, and supports A→Z / Z→A", async () => {
+    mockFrom.mockReturnValue(
+      makeBuilder({
+        data: rowsFor(["Adele", "Beyonce", "Beyonce", "Coldplay", "Coldplay", "Coldplay"]),
+        error: null,
+      })
+    );
+
+    render(<ArtistsPage />);
+    await waitFor(() => expect(screen.getByText("Coldplay")).toBeInTheDocument());
+
+    const namesInOrder = () =>
+      screen.getAllByText(/^(Adele|Beyonce|Coldplay)$/).map(el => el.textContent);
+
+    // Default sort = "count": Coldplay(3) > Beyonce(2) > Adele(1)
+    expect(namesInOrder()).toEqual(["Coldplay", "Beyonce", "Adele"]);
+
+    fireEvent.click(screen.getByText("A → Z"));
+    expect(namesInOrder()).toEqual(["Adele", "Beyonce", "Coldplay"]);
+
+    fireEvent.click(screen.getByText("Z → A"));
+    expect(namesInOrder()).toEqual(["Coldplay", "Beyonce", "Adele"]);
+  });
+
+  it("filters artists by search text", async () => {
+    mockFrom.mockReturnValue(
+      makeBuilder({
+        data: rowsFor(["Adele", "Beyonce", "Coldplay"]),
+        error: null,
+      })
+    );
+
+    render(<ArtistsPage />);
+    await waitFor(() => expect(screen.getByText("Coldplay")).toBeInTheDocument());
+
+    fireEvent.change(screen.getByPlaceholderText("Filter artists..."), {
+      target: { value: "bey" },
+    });
+
+    expect(screen.getByText("Beyonce")).toBeInTheDocument();
+    expect(screen.queryByText("Adele")).not.toBeInTheDocument();
+    expect(screen.queryByText("Coldplay")).not.toBeInTheDocument();
+  });
+
+  it("renders the empty state when no performances exist", async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [], error: null }));
+
+    render(<ArtistsPage />);
+
+    await waitFor(() => expect(screen.getByText("No artists found")).toBeInTheDocument());
+  });
+});
 
 beforeEach(() => {
   mockFrom.mockReset();
