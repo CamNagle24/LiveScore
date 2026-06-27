@@ -111,3 +111,36 @@ describe("ArtistsPage", () => {
     await waitFor(() => expect(screen.getByText("No artists found")).toBeInTheDocument());
   });
 });
+
+beforeEach(() => {
+  mockFrom.mockReset();
+  mockGetUser.mockResolvedValue({ data: { user: null } });
+});
+
+describe("ArtistsPage — load error handling", () => {
+  it("shows an inline error message when the Supabase query fails", async () => {
+    mockFrom.mockReturnValue(
+      makeBuilder({ data: null, error: { message: "db down" } })
+    );
+
+    render(<ArtistsPage />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/couldn.t load artists/i)
+      ).toBeInTheDocument()
+    );
+    expect(screen.queryByText(/no artists found/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the empty state (not the error message) when the query succeeds with no rows", async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [], error: null }));
+
+    render(<ArtistsPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/no artists found/i)).toBeInTheDocument()
+    );
+    expect(screen.queryByText(/couldn.t load artists/i)).not.toBeInTheDocument();
+  });
+});

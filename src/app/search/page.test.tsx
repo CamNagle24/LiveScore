@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -26,11 +26,34 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
   const builder: PromiseLike<typeof result> & Record<string, unknown> = {
     select: () => builder,
     order: () => builder,
-    limit: () => builder,
+    range: () => builder,
     or: () => builder,
+    abortSignal: () => builder,
     then: (resolve, reject) => Promise.resolve(result).then(resolve, reject),
   };
   return builder;
+}
+
+function makeSequencedBuilder(results: { data: unknown; error: unknown }[]) {
+  let call = 0;
+  return () => {
+    const result = results[Math.min(call, results.length - 1)];
+    call += 1;
+    return makeBuilder(result);
+  };
+}
+
+function makePerformance(id: string) {
+  return {
+    id,
+    artist_name: `Artist ${id}`,
+    event_name: `Event ${id}`,
+    venue_name: 'Venue',
+    performance_date: '2024-01-01',
+    performance_type: 'concert',
+    duration_minutes: 60,
+    watch_sources: [],
+  };
 }
 
 beforeEach(() => {
@@ -61,5 +84,160 @@ describe("SearchPage — fetchPerformances error handling", () => {
     expect(
       screen.queryByText(/something went wrong loading performances/i)
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("SearchPage — pagination", () => {
+  it("shows a Load more button when a full page of results is returned, and appends the next page on click", async () => {
+    const firstPage = Array.from({ length: 24 }, (_, i) => makePerformance(`p${i}`));
+    const secondPage = [makePerformance("p24"), makePerformance("p25")];
+    mockFrom.mockImplementation(
+      makeSequencedBuilder([
+        { data: firstPage, error: null },
+        { data: secondPage, error: null },
+      ])
+    );
+
+    render(<SearchPage />);
+
+    await waitFor(() => expect(screen.getByText("24 PERFORMANCES")).toBeInTheDocument());
+    const loadMoreButton = screen.getByRole("button", { name: /load more/i });
+    expect(loadMoreButton).toBeInTheDocument();
+
+    loadMoreButton.click();
+
+    await waitFor(() => expect(screen.getByText("26 PERFORMANCES")).toBeInTheDocument());
+  });
+
+  it("hides the Load more button when fewer than a full page of results is returned", async () => {
+    mockFrom.mockReturnValue(
+      makeBuilder({ data: [makePerformance("p0")], error: null })
+    );
+
+    render(<SearchPage />);
+
+    await waitFor(() => expect(screen.getByText("1 PERFORMANCES")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /load more/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("SearchPage — performance card accessibility", () => {
+  const performance = {
+    id: "1",
+    artist_name: "Radiohead",
+    event_name: "Glastonbury 2003",
+    venue_name: "Glastonbury",
+    performance_date: "2003-06-27",
+    performance_type: "festival",
+    duration_minutes: 90,
+    watch_sources: [
+      {
+        id: 1,
+        url: "https://youtube.com/watch?v=abc",
+        source_status: "verified",
+        subscription_service: null,
+      },
+    ],
+  };
+
+  it("exposes a role=button + aria-label and opens the source on Enter", async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [performance], error: null }));
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    render(<SearchPage />);
+
+    const card = await screen.findByRole("button", {
+      name: "Watch Glastonbury 2003 by Radiohead",
+    });
+    card.focus();
+    fireEvent.keyDown(card, { key: "Enter" });
+
+    expect(openSpy).toHaveBeenCalledWith(
+      "https://youtube.com/watch?v=abc",
+      "_blank",
+      "noopener,noreferrer"
+    );
+  });
+
+  it("does not expose interactive semantics when there is no watchable source", async () => {
+    mockFrom.mockReturnValue(
+      makeBuilder({
+        data: [{ ...performance, watch_sources: [] }],
+        error: null,
+      })
+    );
+
+    render(<SearchPage />);
+
+    await waitFor(() => expect(mockFrom).toHaveBeenCalled());
+    expect(
+      screen.queryByRole("button", { name: /watch/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("SearchPage — stale request cancellation", () => {
+  it("discards a slow in-flight response once a newer search supersedes it", async () => {
+    let resolveStale!: (v: { data: unknown; error: null }) => void;
+    const staleBuilder: PromiseLike<unknown> & Record<string, unknown> = {
+      select: () => staleBuilder,
+      order: () => staleBuilder,
+      limit: () => staleBuilder,
+      range: () => staleBuilder,
+      or: () => staleBuilder,
+      abortSignal: () => staleBuilder,
+      then: (resolve, reject) =>
+        new Promise((res) => {
+          resolveStale = res;
+        }).then(resolve, reject),
+    };
+    const freshBuilder = makeBuilder({
+      data: [
+        {
+          id: "fresh",
+          artist_name: "Fresh Artist",
+          event_name: "Fresh Result",
+          venue_name: null,
+          performance_date: null,
+          performance_type: null,
+          duration_minutes: null,
+          watch_sources: [],
+        },
+      ],
+      error: null,
+    });
+
+    mockFrom.mockReturnValueOnce(staleBuilder).mockReturnValueOnce(freshBuilder);
+
+    render(<SearchPage />);
+
+    const input = screen.getByPlaceholderText(/try/i);
+    fireEvent.change(input, { target: { value: "fresh" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() =>
+      expect(screen.getByText("Fresh Result")).toBeInTheDocument()
+    );
+
+    resolveStale({
+      data: [
+        {
+          id: "stale",
+          artist_name: "Stale Artist",
+          event_name: "Stale Result",
+          venue_name: null,
+          performance_date: null,
+          performance_type: null,
+          duration_minutes: null,
+          watch_sources: [],
+        },
+      ],
+      error: null,
+    });
+
+    await waitFor(() =>
+      expect(screen.queryByText("Stale Result")).not.toBeInTheDocument()
+    );
+    expect(screen.getByText("Fresh Result")).toBeInTheDocument();
   });
 });
