@@ -20,16 +20,12 @@ backend; server components / route handlers use the Supabase server client.
 - TypeScript strict. Server-side data access only; never expose service keys client-side.
 
 ## Known gaps (fuel for TASKS.md)
-- **PR backlog is the actual bottleneck, not task supply.** As of this grooming pass, 16 `[routine]`
-  PRs (#32–#47) are open and unmerged, the oldest since 2026-06-18 — every item already in the
-  Queue has either an open PR/branch against it or (for 3 entries) was already shipped on `main`
-  without the Queue being ticked off. The work loop found **zero eligible tasks** this run and
-  also found zero last run (#47). Grooming alone can't fix this — the bottleneck is review/merge
-  throughput. Recommend triaging and merging (or closing) the open PRs before the next run, and
-  reconciling the duplicate grooming PRs (#42, #47, and this one) into `docs/TASKS.md` once one lands.
-- No test coverage for `src/lib/supabase.ts`'s lazy Proxy-based singleton client.
-- No "skip to main content" link or `<main>` landmark in `RootLayout` — `<body>` renders `children`
-  directly.
-- `next.config.ts` doesn't set `poweredByHeader: false`; responses leak `X-Powered-By: Next.js`.
-- `robots.ts` doesn't disallow `/api/`.
-- Raw `<img>` tags remain in `artist/[name]`, `artists`, and `profile` (search page's is mid-PR in #46).
+- **PR backlog cleared.** The 16 `[routine]` PRs (#32–#47) noted as a bottleneck in the prior
+  grooming pass are gone — `main` is caught up through #48. This run found 14 Queue entries were
+  already shipped on `main` under those PR numbers without the Queue being ticked off (now
+  reconciled into `## Done` below) and shipped the 4 entries that were still genuinely open as
+  PRs #49–#52. Watch for the same staleness pattern recurring: when a task PR's `docs/TASKS.md`
+  edit doesn't make it into `main` (e.g. a grooming PR merges first and re-adds the item, or a
+  task PR is closed without merging), the Queue silently drifts from reality.
+- Raw `<img>` tags remain in `artist/[name]`, `artists`, and `profile` (search page's was migrated
+  in #46).
