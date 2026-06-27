@@ -27,10 +27,9 @@ Format: `- [ ] <title> — <acceptance criteria>`
 - [ ] Add tests for `src/lib/supabase.ts` — the lazy Proxy-based singleton client has no coverage; mock `./supabase/client`'s `createClient` and assert it is NOT called at import time (only on first property access), that repeated property access reuses the same underlying client (singleton), and that accessed methods are correctly bound to the real client (e.g. calling a destructured method doesn't throw `this` errors).
 - [ ] Disable the `X-Powered-By` response header — `next.config.ts` doesn't set `poweredByHeader: false`, so every response leaks `X-Powered-By: Next.js`; add the flag (one-line config change, complements the CSP-headers task without overlapping it).
 - [ ] Add a "Skip to main content" link and `<main>` landmark — `src/app/layout.tsx`'s `RootLayout` renders `children` directly inside `<body>` with no `<main>` element and no skip-link before `PageNav`, so keyboard/screen-reader users can't jump past the nav on every page; add a visually-hidden-until-focused skip link targeting a `<main id="main">` wrapper.
-- [ ] Exclude `/api/` from `robots.ts` — `src/app/robots.ts` only disallows `/profile` and `/developer`; API routes return JSON, not pages, and crawling them wastes crawl budget; add `/api` to the `disallow` list.
-
 ## Done
 <!-- routine PRs move completed items here -->
+- [x] Exclude `/api/` from `robots.ts` — `src/app/robots.ts` only disallows `/profile` and `/developer`; API routes return JSON, not pages, and crawling them wastes crawl budget; add `/api` to the `disallow` list.
 - [x] Add unit tests for `savedStore` (`src/lib/savedStore.ts`). (Shipped in #26 — `src/lib/savedStore.test.ts` exists covering `ensureSavedLoaded` dedup/in-flight-promise reuse, `toggleSaved` optimistic-update-then-revert, and `resetSaved`. Queue entry was stale.)
 - [x] Fix silent Supabase error in `src/app/search/page.tsx`. (Shipped in #28 — `searchError` state + inline banner confirmed present in `fetchPerformances`'s try/catch. Queue entry was stale.)
 - [x] Add `global-error.tsx` for root layout errors. (Shipped in #30 — `src/app/global-error.tsx` exists as a Client Component with `<html>`/`<body>` and `unstable_retry`. Queue entry was stale.)
