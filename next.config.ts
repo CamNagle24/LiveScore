@@ -28,6 +28,7 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   images: {
     // Landing-page "Recent Drops" images are hosted in the LiveListenPhotos
     // GitHub repo and served via ?raw=true (which 302s to
