@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { getYouTubeThumbnail, getBestSource } from '@/lib/youtube'
 import { PageNav } from '@/components/PageNav'
@@ -62,8 +63,9 @@ function PerformanceCard({ p, delay }: { p: Performance; delay: number }) {
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
         {thumbSrc ? (
-          <img src={thumbSrc} alt={p.event_name || p.artist_name} onError={handleThumbErr}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.05)' : 'scale(1)', transition: 'transform 300ms ease' }} />
+          <Image src={thumbSrc} alt={p.event_name || p.artist_name} onError={handleThumbErr} fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+            style={{ objectFit: 'cover', transform: hovered ? 'scale(1.05)' : 'scale(1)', transition: 'transform 300ms ease' }} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', color: 'rgba(255,255,255,0.08)' }}>♪</div>
         )}
