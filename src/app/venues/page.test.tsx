@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -94,8 +94,90 @@ describe("VenuesPage", () => {
       target: { value: "zen" },
     });
 
-    expect(screen.queryByText("Apex Center")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText("Apex Center")).not.toBeInTheDocument());
     expect(screen.getByText("Zenith Hall")).toBeInTheDocument();
+  });
+
+  describe("debounced filtering", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("does not filter immediately on keystroke, but does after the 400ms debounce", async () => {
+      mockRows([
+        { venue_name: "Apex Center", artist_name: "X" },
+        { venue_name: "Zenith Hall", artist_name: "Y" },
+      ]);
+
+      render(<VenuesPage />);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(screen.getByText("Apex Center")).toBeInTheDocument();
+
+      fireEvent.change(screen.getByPlaceholderText("Filter venues..."), {
+        target: { value: "zen" },
+      });
+
+      // Immediately after typing, both venues are still rendered — filter hasn't committed yet
+      expect(screen.getByText("Apex Center")).toBeInTheDocument();
+      expect(screen.getByText("Zenith Hall")).toBeInTheDocument();
+
+      // Just under the debounce threshold: still no filtering
+      act(() => {
+        vi.advanceTimersByTime(399);
+      });
+      expect(screen.getByText("Apex Center")).toBeInTheDocument();
+
+      // Crossing the 400ms threshold commits the filter
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(screen.queryByText("Apex Center")).not.toBeInTheDocument();
+      expect(screen.getByText("Zenith Hall")).toBeInTheDocument();
+    });
+
+    it("resets the debounce timer on each keystroke (rapid typing only filters once, after the last keystroke)", async () => {
+      mockRows([
+        { venue_name: "Apex Center", artist_name: "X" },
+        { venue_name: "Zenith Hall", artist_name: "Y" },
+      ]);
+
+      render(<VenuesPage />);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      const input = screen.getByPlaceholderText("Filter venues...");
+
+      fireEvent.change(input, { target: { value: "z" } });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      fireEvent.change(input, { target: { value: "ze" } });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      fireEvent.change(input, { target: { value: "zen" } });
+
+      // Total elapsed since last keystroke is still < 400ms, so no commit yet
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(screen.getByText("Apex Center")).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      expect(screen.queryByText("Apex Center")).not.toBeInTheDocument();
+      expect(screen.getByText("Zenith Hall")).toBeInTheDocument();
+    });
   });
 
   it("renders the empty state when no performances exist", async () => {
