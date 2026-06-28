@@ -1,12 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-
-function adminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
+import { isAdmin } from "@/lib/isAdmin";
 
 /**
  * Server-side admin guard for the developer dashboard (defense in depth on top
@@ -22,9 +16,8 @@ export default async function DeveloperLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const email = user?.email?.toLowerCase() ?? "";
   if (!user) redirect("/login?next=/developer");
-  if (!adminEmails().includes(email)) redirect("/landing");
+  if (!isAdmin(user.email)) redirect("/landing");
 
   return <>{children}</>;
 }
