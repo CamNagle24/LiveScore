@@ -9,6 +9,13 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary", "html"],
+      thresholds: {
+        lines: 70,
+      },
+    },
   },
   resolve: {
     alias: {
