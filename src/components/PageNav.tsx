@@ -43,6 +43,7 @@ export function PageNav() {
           <button
             key={tab}
             onClick={() => go(tab)}
+            aria-current={activeTab === tab ? 'page' : undefined}
             style={{ background: 'none', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', fontSize: '14px', fontWeight: activeTab === tab ? 600 : 400, color: activeTab === tab ? '#fff' : 'rgba(255,255,255,0.55)', borderBottom: activeTab === tab ? '2px solid #FF006E' : '2px solid transparent', transition: 'all 150ms ease', whiteSpace: 'nowrap' }}
           >
             {tab}
