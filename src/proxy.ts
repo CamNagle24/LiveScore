@@ -1,15 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAdmin } from "@/lib/isAdmin";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-function adminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 export async function proxy(request: NextRequest) {
   // Refresh the session and forward any updated auth cookies.
@@ -57,8 +51,7 @@ export async function proxy(request: NextRequest) {
   // /developer — requires a signed-in admin.
   if (pathname.startsWith("/developer")) {
     if (!user) return redirectTo("/login", true);
-    const email = user.email?.toLowerCase() ?? "";
-    if (!adminEmails().includes(email)) return redirectTo("/landing");
+    if (!isAdmin(user.email)) return redirectTo("/landing");
   }
 
   return response;
