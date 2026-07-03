@@ -20,12 +20,28 @@ backend; server components / route handlers use the Supabase server client.
 - TypeScript strict. Server-side data access only; never expose service keys client-side.
 
 ## Known gaps (fuel for TASKS.md)
-- **PR backlog cleared.** The 16 `[routine]` PRs (#32–#47) noted as a bottleneck in the prior
-  grooming pass are gone — `main` is caught up through #48. This run found 14 Queue entries were
-  already shipped on `main` under those PR numbers without the Queue being ticked off (now
-  reconciled into `## Done` below) and shipped the 4 entries that were still genuinely open as
-  PRs #49–#52. Watch for the same staleness pattern recurring: when a task PR's `docs/TASKS.md`
-  edit doesn't make it into `main` (e.g. a grooming PR merges first and re-adds the item, or a
-  task PR is closed without merging), the Queue silently drifts from reality.
+- **Stale-Queue pattern recurred; reconciled again.** The 2026-06-27 grooming pass's note about
+  PRs #49–#52 is now resolved (those merged and are reconciled into `## Done`). This run
+  (2026-06-28) found 6 *more* stale Queue entries whose checkboxes never reflected already-shipped
+  work — and they weren't all the same vintage: 4 were the immediately-preceding #49–#52 batch
+  (expected, since those PRs were "open" as of the last pass and have since merged), 1 shipped in
+  #11 over a week earlier and was simply never reconciled in any prior pass, and 1 (the `/search`
+  empty-state message) predates the entire task-queue/routine workflow — it's been in the codebase
+  since the original scaffold commit and was never accurate to begin with. The pattern isn't just
+  "a grooming PR's edit gets clobbered by a same-day task PR merging after it" — entries can sit
+  stale indefinitely until someone actually checks source. Treat every Queue checkbox as a hint,
+  not a fact, on every pass, not just for the immediately-prior batch of PR numbers.
 - Raw `<img>` tags remain in `artist/[name]`, `artists`, and `profile` (search page's was migrated
-  in #46).
+  in #46); a Queue entry now exists to migrate `profile` first as the smallest next slice.
+- **Client components fetch Supabase directly, violating the stated data-layer convention.** This
+  doc's own Conventions section says "Keep DB access in server code / `src/lib/**`, not client
+  components," but `src/app/artist/[name]/page.tsx`, `src/app/search/page.tsx`,
+  `src/app/artists/page.tsx`, and `src/app/venues/page.tsx` are all `'use client'` and call the
+  Supabase JS client (`@/lib/supabase`, the browser singleton) directly in the component body —
+  none of them go through a server component or route handler. This is long-standing drift, not a
+  regression from recent PRs. It also blocks straightforward fixes elsewhere: the Cache-Control
+  Queue entry is blocked specifically because `revalidate`/`fetch` cache hints and `unstable_cache`
+  are server-only mechanisms that don't apply to a browser-side fetch path. A Queue entry now
+  scopes a first slice (migrate `/search` only) rather than one big "migrate everything" task —
+  `artists`, `venues`, and `artist/[name]` are left as separate follow-ups once that pattern is
+  proven out.
