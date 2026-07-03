@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { PageNav } from '@/components/PageNav'
@@ -92,8 +92,10 @@ export default function ArtistsPage() {
   const [artists, setArtists] = useState<ArtistEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [inputValue, setInputValue] = useState('')
   const [filter, setFilter] = useState('')
   const [sort, setSort] = useState<ArtistSort>('count')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -154,6 +156,20 @@ export default function ArtistsPage() {
     load()
   }, [])
 
+  // Clear any pending debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
+  const handleFilterInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setInputValue(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setFilter(val), 400)
+  }
+
   const filtered = (filter.trim()
     ? artists.filter(a => a.name.toLowerCase().includes(filter.toLowerCase()))
     : [...artists]
@@ -179,8 +195,8 @@ export default function ArtistsPage() {
             <div style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', fontSize: '18px', pointerEvents: 'none' }}>⌕</div>
             <input
               type="text"
-              value={filter}
-              onChange={e => setFilter(e.target.value)}
+              value={inputValue}
+              onChange={handleFilterInput}
               placeholder="Filter artists..."
               style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '12px', padding: '14px 20px 14px 48px', color: '#fff', fontSize: '15px', fontFamily: 'var(--font-dm-sans, system-ui)', outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms' }}
               onFocus={e => { e.currentTarget.style.borderColor = 'rgba(255,0,110,0.5)' }}

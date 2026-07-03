@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -98,9 +98,98 @@ describe("ArtistsPage", () => {
       target: { value: "bey" },
     });
 
+    await waitFor(() => expect(screen.queryByText("Adele")).not.toBeInTheDocument());
     expect(screen.getByText("Beyonce")).toBeInTheDocument();
-    expect(screen.queryByText("Adele")).not.toBeInTheDocument();
     expect(screen.queryByText("Coldplay")).not.toBeInTheDocument();
+  });
+
+  describe("debounced filtering", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("does not filter immediately on keystroke, but does after the 400ms debounce", async () => {
+      mockFrom.mockReturnValue(
+        makeBuilder({
+          data: rowsFor(["Adele", "Beyonce", "Coldplay"]),
+          error: null,
+        })
+      );
+
+      render(<ArtistsPage />);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(screen.getByText("Coldplay")).toBeInTheDocument();
+
+      fireEvent.change(screen.getByPlaceholderText("Filter artists..."), {
+        target: { value: "bey" },
+      });
+
+      // Immediately after typing, all three artists are still rendered
+      expect(screen.getByText("Adele")).toBeInTheDocument();
+      expect(screen.getByText("Beyonce")).toBeInTheDocument();
+      expect(screen.getByText("Coldplay")).toBeInTheDocument();
+
+      // Just under the debounce threshold: still no filtering
+      act(() => {
+        vi.advanceTimersByTime(399);
+      });
+      expect(screen.getByText("Coldplay")).toBeInTheDocument();
+
+      // Crossing the 400ms threshold commits the filter
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(screen.getByText("Beyonce")).toBeInTheDocument();
+      expect(screen.queryByText("Adele")).not.toBeInTheDocument();
+      expect(screen.queryByText("Coldplay")).not.toBeInTheDocument();
+    });
+
+    it("resets the debounce timer on each keystroke (rapid typing only filters once, after the last keystroke)", async () => {
+      mockFrom.mockReturnValue(
+        makeBuilder({
+          data: rowsFor(["Adele", "Beyonce", "Coldplay"]),
+          error: null,
+        })
+      );
+
+      render(<ArtistsPage />);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      const input = screen.getByPlaceholderText("Filter artists...");
+
+      fireEvent.change(input, { target: { value: "b" } });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      fireEvent.change(input, { target: { value: "be" } });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      fireEvent.change(input, { target: { value: "bey" } });
+
+      // Total elapsed since last keystroke is still < 400ms, so no commit yet
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(screen.getByText("Adele")).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      expect(screen.queryByText("Adele")).not.toBeInTheDocument();
+      expect(screen.getByText("Beyonce")).toBeInTheDocument();
+      expect(screen.queryByText("Coldplay")).not.toBeInTheDocument();
+    });
   });
 
   it("renders the empty state when no performances exist", async () => {
