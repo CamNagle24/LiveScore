@@ -20,17 +20,17 @@ backend; server components / route handlers use the Supabase server client.
 - TypeScript strict. Server-side data access only; never expose service keys client-side.
 
 ## Known gaps (fuel for TASKS.md)
-- **PR backlog persists.** Eight open `[routine]` PRs (#54–#61) are unmerged against `main`.
-  This run found 2 more Queue entries already shipped (artist `not-found.tsx` in #11, empty-state
-  in the original scaffold) but unchecked — reconciled into `## Done`. The staleness pattern
-  observed in the previous grooming pass continues: task PRs whose `docs/TASKS.md` edit doesn't
-  merge leave the Queue drifting from reality. Verify all items against source before implementing.
-- Raw `<img>` tags remain in `artist/[name]/page.tsx`, `artists/page.tsx`, and `profile/page.tsx`
-  (search page migrated in #46); `next.config.ts` `remotePatterns` needs `www.theaudiodb.com`
-  and `lh3.googleusercontent.com` added before those migrations can land.
-- Security headers incomplete: `next.config.ts` sets CSP and `poweredByHeader: false` but lacks
-  `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy`.
-- Client-side data fetching drift: `artist/[name]/page.tsx`, `search/page.tsx`, `artists/page.tsx`,
-  and `venues/page.tsx` are all `'use client'` and call the browser Supabase singleton directly,
-  contradicting the architecture principle of keeping DB access in server code / `src/lib/**`.
-  This blocks caching improvements until the pages are migrated to a server-component data layer.
+- **Open PR backlog (2026-07-02):** 7 task PRs open (#54–#58, #60–#61) plus 2 grooming PRs
+  (#59, #62). Queue drift continues to be the main risk: each open PR ticks its task inside its own
+  branch, but until that branch merges the tick is invisible on `main`. Source-verify every Queue
+  entry before implementing it (a file check beats trusting the checkbox).
+- **Raw `<img>` tags remain** in `artist/[name]/page.tsx`, `artists/page.tsx`, and `profile/page.tsx`
+  (search page migrated in #46). Three separate tasks in the Queue target these one-file at a time.
+- **Client-side data fetching drift:** `artist/[name]/page.tsx`, `search/page.tsx`, `artists/page.tsx`,
+  and `venues/page.tsx` are all `'use client'` components fetching directly via the browser Supabase
+  singleton. This contradicts the architectural principle ("DB access in server code / `src/lib/**`,
+  not client components") and is the direct cause of the Cache-Control task being blocked (`revalidate`/
+  `unstable_cache` are server-only). Migrating these pages to server components with a client shell is
+  the long-term fix but is out of scope for any single routine PR.
+- **Missing security headers:** `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy`
+  are absent from `next.config.ts`'s `headers()` (only CSP is set). One task in the Queue adds all three.
