@@ -2,6 +2,16 @@
 
 Append-only. Newest first. One short entry per meaningful decision.
 
+## 2026-07-01 — Work loop yielded 0 eligible tasks; all 15 Queue items blocked/in-flight/done
+This run found: 8 items with open PRs (#54–#61) — not eligible. 2 items already shipped but not
+ticked off (`artist/[name]/not-found.tsx` in #11; `/search` empty-state in original scaffold).
+2 items architecturally blocked (Cache-Control requires server-side data layer; `sitemap.ts`
+`lastModified` test requires the field to exist first). No eligible implementation tasks remain.
+The grooming PR (this one) reconciles those stale entries, adds `> open:` notes for in-flight
+PRs to prevent future re-implementation, and adds 10 new independently-shippable tasks to
+replenish the backlog. **Why:** better to record the 0-task state cleanly than to force an
+ineligible task through and produce a broken PR.
+
 ## 2026-06-28 — Second reconciliation pass; flag client-side Supabase fetching as a stated-convention violation
 Found 6 more stale Queue entries (unchecked but already shipped): 4 from the #49–#52 batch that
 merged since the 2026-06-27 pass, 1 from #11 (over a week earlier, never previously reconciled),
