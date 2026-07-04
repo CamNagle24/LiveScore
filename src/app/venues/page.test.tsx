@@ -188,3 +188,34 @@ describe("VenuesPage", () => {
     await waitFor(() => expect(screen.getByText("No venues found")).toBeInTheDocument());
   });
 });
+
+describe("VenuesPage — load error handling", () => {
+  beforeEach(() => {
+    mockFrom.mockClear();
+    mockSelect.mockClear();
+    mockNot.mockClear();
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+  });
+
+  it("shows an inline error message when the Supabase query fails", async () => {
+    mockNot.mockResolvedValue({ data: null, error: { message: "db error" } });
+
+    render(<VenuesPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/couldn.t load venues/i)).toBeInTheDocument()
+    );
+    expect(screen.queryByText(/no venues found/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the empty state (not the error message) when the query succeeds with no rows", async () => {
+    mockRows([]);
+
+    render(<VenuesPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/no venues found/i)).toBeInTheDocument()
+    );
+    expect(screen.queryByText(/couldn.t load venues/i)).not.toBeInTheDocument();
+  });
+});

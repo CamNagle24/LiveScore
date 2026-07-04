@@ -100,6 +100,7 @@ function VenueCard({ venue, delay }: { venue: VenueEntry; delay: number }) {
 export default function VenuesPage() {
   const [venues, setVenues] = useState<VenueEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [filter, setFilter] = useState('')
   const [sort, setSort] = useState<VenueSort>('count')
@@ -107,27 +108,31 @@ export default function VenuesPage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
-        .from('performances')
-        .select('venue_name, artist_name')
-        .not('venue_name', 'is', null)
+      try {
+        const { data, error } = await supabase
+          .from('performances')
+          .select('venue_name, artist_name')
+          .not('venue_name', 'is', null)
+        if (error) throw error
 
-      if (!data) { setLoading(false); return }
+        const venueMap: Record<string, { count: number; artists: Set<string> }> = {}
+        for (const row of data ?? []) {
+          if (!row.venue_name) continue
+          if (!venueMap[row.venue_name]) venueMap[row.venue_name] = { count: 0, artists: new Set() }
+          venueMap[row.venue_name].count++
+          if (row.artist_name) venueMap[row.venue_name].artists.add(row.artist_name)
+        }
 
-      const venueMap: Record<string, { count: number; artists: Set<string> }> = {}
-      for (const row of data) {
-        if (!row.venue_name) continue
-        if (!venueMap[row.venue_name]) venueMap[row.venue_name] = { count: 0, artists: new Set() }
-        venueMap[row.venue_name].count++
-        if (row.artist_name) venueMap[row.venue_name].artists.add(row.artist_name)
+        const entries: VenueEntry[] = Object.entries(venueMap)
+          .sort((a, b) => b[1].count - a[1].count)
+          .map(([name, val]) => ({ name, count: val.count, artists: Array.from(val.artists) }))
+
+        setVenues(entries)
+      } catch {
+        setLoadError(true)
+      } finally {
+        setLoading(false)
       }
-
-      const entries: VenueEntry[] = Object.entries(venueMap)
-        .sort((a, b) => b[1].count - a[1].count)
-        .map(([name, val]) => ({ name, count: val.count, artists: Array.from(val.artists) }))
-
-      setVenues(entries)
-      setLoading(false)
     }
     load()
   }, [])
@@ -200,6 +205,12 @@ export default function VenuesPage() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '60px', gap: '12px', alignItems: 'center' }}>
               <div style={{ width: '22px', height: '22px', border: '2px solid rgba(0,245,255,0.3)', borderTopColor: '#00F5FF', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               <span style={{ color: 'rgba(255,255,255,0.3)' }}>Loading venues...</span>
+            </div>
+          ) : loadError ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '15px' }}>
+                Couldn&apos;t load venues. Check your connection and try again.
+              </p>
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
