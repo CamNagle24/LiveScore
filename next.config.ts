@@ -50,6 +50,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "www.theaudiodb.com",
       },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
     ],
   },
   async headers() {
