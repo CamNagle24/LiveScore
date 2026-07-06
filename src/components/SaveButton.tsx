@@ -10,6 +10,7 @@ import {
   useSavedIds,
   resetSaved,
 } from "@/lib/savedStore";
+import { track } from "@/lib/analytics";
 
 /**
  * Bookmark toggle for a performance. Signed-out clicks route to /login
@@ -52,6 +53,7 @@ export function SaveButton({ performanceId, size = 34 }: { performanceId: string
     setError(null);
     try {
       await toggleSaved(performanceId, user.id);
+      track('save_toggle', { performanceId, saved: !wasSaved });
     } catch {
       // store already reverted; let the user know it didn't go through
       setError(wasSaved ? "Couldn't remove. Try again." : "Couldn't save. Try again.");

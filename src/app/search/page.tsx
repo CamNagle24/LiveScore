@@ -9,6 +9,7 @@ import { PageNav } from '@/components/PageNav'
 import { SuggestFooter } from '@/components/SuggestFooter'
 import { PlatformBadge } from '@/components/PlatformBadge'
 import { SaveButton } from '@/components/SaveButton'
+import { track } from '@/lib/analytics'
 import type { Performance } from '@/types/performance'
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
@@ -150,6 +151,7 @@ function SearchPageInner() {
     if (pageNum === 0) setLoading(true)
     else setLoadingMore(true)
     setSearchError(null)
+    if (q.trim() && pageNum === 0) track('search_submit', { query: q.trim() })
     try {
       const from = pageNum * PAGE_SIZE
       const to = from + PAGE_SIZE - 1

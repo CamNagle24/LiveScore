@@ -7,11 +7,14 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+const mockTrack = vi.hoisted(() => vi.fn());
 const mockGetUser = vi.hoisted(() => vi.fn());
 const mockOnAuthStateChange = vi.hoisted(() =>
   vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } }))
 );
 const mockFrom = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/analytics", () => ({ track: mockTrack }));
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -239,5 +242,38 @@ describe("SearchPage — stale request cancellation", () => {
       expect(screen.queryByText("Stale Result")).not.toBeInTheDocument()
     );
     expect(screen.getByText("Fresh Result")).toBeInTheDocument();
+  });
+});
+
+describe("SearchPage — analytics", () => {
+  beforeEach(() => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [], error: null }));
+    mockTrack.mockReset();
+  });
+
+  it("calls track('search_submit') with the trimmed query when Enter is pressed with a non-empty value", async () => {
+    render(<SearchPage />);
+    await waitFor(() => expect(mockFrom).toHaveBeenCalled());
+
+    const input = screen.getByPlaceholderText('Try "Kendrick Lamar", "Glastonbury", "Coachella"...');
+    fireEvent.change(input, { target: { value: "  Taylor  " } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() =>
+      expect(mockTrack).toHaveBeenCalledWith("search_submit", { query: "Taylor" })
+    );
+  });
+
+  it("does not call track when Enter is pressed with an empty query", async () => {
+    render(<SearchPage />);
+    await waitFor(() => expect(mockFrom).toHaveBeenCalled());
+    mockTrack.mockReset();
+
+    const input = screen.getByPlaceholderText('Try "Kendrick Lamar", "Glastonbury", "Coachella"...');
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => expect(mockFrom).toHaveBeenCalled());
+    expect(mockTrack).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { SaveButton } from "./SaveButton";
 
-const { mockPush, mockToggleSaved, mockEnsureSavedLoaded, mockResetSaved, auth, store } =
+const { mockPush, mockToggleSaved, mockEnsureSavedLoaded, mockResetSaved, mockTrack, auth, store } =
   vi.hoisted(() => {
     const auth = { user: null as { id: string } | null, loading: false };
     const store = { isSaved: false };
@@ -11,6 +11,7 @@ const { mockPush, mockToggleSaved, mockEnsureSavedLoaded, mockResetSaved, auth, 
       mockToggleSaved: vi.fn(),
       mockEnsureSavedLoaded: vi.fn(),
       mockResetSaved: vi.fn(),
+      mockTrack: vi.fn(),
       auth,
       store,
     };
@@ -24,6 +25,8 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/useUser", () => ({
   useUser: () => ({ user: auth.user, loading: auth.loading }),
 }));
+
+vi.mock("@/lib/analytics", () => ({ track: mockTrack }));
 
 vi.mock("@/lib/savedStore", () => ({
   useSavedIds: () => new Set<string>(),
@@ -39,6 +42,7 @@ beforeEach(() => {
   store.isSaved = false;
   mockPush.mockReset();
   mockToggleSaved.mockReset();
+  mockTrack.mockReset();
   mockEnsureSavedLoaded.mockImplementation(() => Promise.resolve());
   mockResetSaved.mockReset();
 });
@@ -82,6 +86,38 @@ describe("SaveButton", () => {
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Couldn't remove. Try again.");
     });
+  });
+
+  it("calls track('save_toggle') with performanceId and saved=true on successful save", async () => {
+    auth.user = { id: "user-1" };
+    store.isSaved = false;
+    mockToggleSaved.mockImplementation(() => Promise.resolve());
+    render(<SaveButton performanceId="perf-42" />);
+    fireEvent.click(screen.getByRole("button"));
+    await waitFor(() => {
+      expect(mockTrack).toHaveBeenCalledWith("save_toggle", { performanceId: "perf-42", saved: true });
+    });
+  });
+
+  it("calls track('save_toggle') with saved=false on successful unsave", async () => {
+    auth.user = { id: "user-1" };
+    store.isSaved = true;
+    mockToggleSaved.mockImplementation(() => Promise.resolve());
+    render(<SaveButton performanceId="perf-42" />);
+    fireEvent.click(screen.getByRole("button"));
+    await waitFor(() => {
+      expect(mockTrack).toHaveBeenCalledWith("save_toggle", { performanceId: "perf-42", saved: false });
+    });
+  });
+
+  it("does not call track when toggleSaved throws", async () => {
+    auth.user = { id: "user-1" };
+    store.isSaved = false;
+    mockToggleSaved.mockRejectedValue(new Error("db error"));
+    render(<SaveButton performanceId="perf-42" />);
+    fireEvent.click(screen.getByRole("button"));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
+    expect(mockTrack).not.toHaveBeenCalled();
   });
 
   it("busy state blocks a second click before the first resolves", async () => {

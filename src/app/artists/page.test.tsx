@@ -6,11 +6,14 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/artists",
 }));
 
+const mockTrack = vi.hoisted(() => vi.fn());
 const mockGetUser = vi.hoisted(() => vi.fn());
 const mockOnAuthStateChange = vi.hoisted(() =>
   vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } }))
 );
 const mockFrom = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/analytics", () => ({ track: mockTrack }));
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -231,5 +234,19 @@ describe("ArtistsPage — load error handling", () => {
       expect(screen.getByText(/no artists found/i)).toBeInTheDocument()
     );
     expect(screen.queryByText(/couldn.t load artists/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("ArtistsPage — analytics", () => {
+  beforeEach(() => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [{ artist_name: "Adele" }], error: null }));
+    mockTrack.mockReset();
+  });
+
+  it("calls track('artist_card_click') with the artist name when a card is clicked", async () => {
+    render(<ArtistsPage />);
+    await waitFor(() => expect(screen.getByText("Adele")).toBeInTheDocument());
+    fireEvent.click(screen.getByLabelText("View Adele"));
+    expect(mockTrack).toHaveBeenCalledWith("artist_card_click", { artist: "Adele" });
   });
 });
