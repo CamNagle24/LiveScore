@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getYouTubeThumbnail, getBestSource } from '@/lib/youtube'
+import { computeStats } from '@/lib/computeStats'
 import { PlatformBadge } from '@/components/PlatformBadge'
 import { PageNav } from '@/components/PageNav'
 import { SuggestFooter } from '@/components/SuggestFooter'
@@ -172,61 +173,6 @@ function TopPerfCard({ p, thumb: thumbInit, onWatch }: { p: Performance; thumb: 
   )
 }
 
-// ─── Stats computed from the user's saved set ───────────────────────────────────
-
-function mode(values: (string | null | undefined)[]): string | null {
-  const counts = new Map<string, number>()
-  for (const v of values) {
-    if (!v) continue
-    counts.set(v, (counts.get(v) || 0) + 1)
-  }
-  let best: string | null = null
-  let bestN = 0
-  for (const [v, n] of counts) {
-    if (n > bestN) { best = v; bestN = n }
-  }
-  return best
-}
-
-function computeStats(saved: Performance[]) {
-  const artists = new Set(saved.map(p => p.artist_name).filter(Boolean))
-  const venues = new Set(saved.map(p => p.venue_name).filter(Boolean) as string[])
-  const totalMins = saved.reduce((sum, p) => sum + (p.duration_minutes || 0), 0)
-
-  // Platform breakdown from the best source of each saved performance.
-  const platformCounts = new Map<string, number>()
-  for (const p of saved) {
-    const best = getBestSource(p.watch_sources)
-    if (!best) continue
-    const key = best.isYouTube ? 'YouTube' : (best.platform || 'Other')
-    platformCounts.set(key, (platformCounts.get(key) || 0) + 1)
-  }
-  const totalWithSource = [...platformCounts.values()].reduce((a, b) => a + b, 0)
-  const platformColors: Record<string, string> = {
-    YouTube: '#FF0000', 'Amazon Prime Video': '#00A8E1', Netflix: '#E50914',
-    'Disney+': '#113CCF', 'Apple TV+': '#000', Hulu: '#1CE783', Max: '#0046FF',
-  }
-  const platformBreakdown = [...platformCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([platform, n]) => ({
-      platform,
-      pct: totalWithSource ? Math.round((n / totalWithSource) * 100) : 0,
-      color: platformColors[platform] || '#888',
-    }))
-
-  return {
-    badges: [
-      { label: 'Performances Saved', value: String(saved.length), color: '#FF006E' },
-      { label: 'Artists Followed', value: String(artists.size), color: '#00F5FF' },
-      { label: 'Venues Visited', value: String(venues.size), color: '#BCFF00' },
-      { label: 'Hours of Live Music', value: String(Math.round(totalMins / 60)), color: '#FF7A00' },
-    ],
-    mostWatchedArtist: mode(saved.map(p => p.artist_name)),
-    favoriteVenue: mode(saved.map(p => p.venue_name)),
-    topPerformanceType: mode(saved.map(p => p.performance_type)),
-    platformBreakdown,
-  }
-}
 
 export default function ProfilePage() {
   const router = useRouter()
