@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { PageNav } from '@/components/PageNav'
 import { SuggestFooter } from '@/components/SuggestFooter'
@@ -55,11 +56,12 @@ function ArtistCard({ artist, delay }: { artist: ArtistEntry; delay: number }) {
       {/* Artist image */}
       <div style={{ width: '100%', paddingTop: '75%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
         {artist.thumb && !imgErr ? (
-          <img
+          <Image
             src={artist.thumb}
             alt={artist.name}
+            fill
             onError={() => setImgErr(true)}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }}
+            style={{ objectFit: 'cover', objectPosition: 'center top', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }}
           />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '64px', color: 'rgba(255,255,255,0.06)', letterSpacing: '0.04em' }}>

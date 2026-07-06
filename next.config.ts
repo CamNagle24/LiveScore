@@ -46,6 +46,10 @@ const nextConfig: NextConfig = {
         hostname: "img.youtube.com",
         pathname: "/vi/**",
       },
+      {
+        protocol: "https",
+        hostname: "www.theaudiodb.com",
+      },
     ],
   },
   async headers() {
