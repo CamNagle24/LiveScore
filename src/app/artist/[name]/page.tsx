@@ -245,6 +245,18 @@ export default function ArtistPage() {
             </div>
           ) : (
             <>
+              {performances.length > 1 && (
+                <section aria-label="More from this artist" style={{ marginBottom: '40px' }}>
+                  <h2 style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '24px', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', margin: '0 0 20px' }}>
+                    MORE FROM THIS ARTIST
+                  </h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }}>
+                    {performances.slice(0, 4).map((p, i) => (
+                      <PerfCard key={p.id} p={p} delay={i * 40} />
+                    ))}
+                  </div>
+                </section>
+              )}
               <h2 style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '24px', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', margin: '0 0 20px' }}>
                 WATCHABLE PERFORMANCES
               </h2>
