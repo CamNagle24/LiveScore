@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, notFound } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { getYouTubeThumbnail, getBestSource } from '@/lib/youtube'
 import { PageNav } from '@/components/PageNav'
@@ -66,8 +67,8 @@ function PerfCard({ p, delay }: { p: Performance; delay: number }) {
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0a000f)', overflow: 'hidden' }}>
         {thumbSrc ? (
-          <img src={thumbSrc} alt={p.event_name || 'Performance'} onError={handleThumbErr}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }} />
+          <Image src={thumbSrc} alt={p.event_name || 'Performance'} onError={handleThumbErr}
+            fill style={{ objectFit: 'cover', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.07)', fontSize: '36px' }}>♪</div>
         )}
@@ -201,7 +202,7 @@ export default function ArtistPage() {
             {/* Artist thumbnail */}
             <div style={{ width: '110px', height: '110px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg,#FF006E30,#0d0015)', border: '3px solid rgba(255,0,110,0.3)', boxShadow: '0 0 30px rgba(255,0,110,0.2)' }}>
               {artistInfo?.thumb && !thumbErr ? (
-                <img src={artistInfo.thumb} alt={artistName} onError={() => setThumbErr(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <Image src={artistInfo.thumb} alt={artistName} onError={() => setThumbErr(true)} width={110} height={110} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontFamily: 'var(--font-bebas, sans-serif)', color: 'rgba(255,255,255,0.15)' }}>
                   {artistName[0]}
