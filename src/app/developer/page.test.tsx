@@ -11,21 +11,34 @@ import Dashboard from "./page";
 
 // Returns a chainable builder that detects count queries (select with head:true)
 // vs data queries and resolves to the appropriate shape.
+type QueryResult = { data?: unknown[] | null; error?: unknown; count?: number };
+type QueryBuilder = {
+  select: (...args: unknown[]) => QueryBuilder;
+  eq: () => QueryBuilder;
+  order: () => QueryBuilder;
+  limit: () => QueryBuilder;
+  returns: () => QueryBuilder;
+  then: (res: (v: QueryResult) => void) => Promise<void>;
+};
+
 function makeBuilder({
   count = 0,
-  data = [] as unknown[],
+  data = [] as unknown[] | null,
   dataError = null as unknown,
 } = {}) {
-  function countChain(): any {
-    const c: any = {
+  function countChain(): QueryBuilder {
+    const c: QueryBuilder = {
+      select: () => c,
       eq: () => c,
-      then: (res: (v: any) => void) =>
-        Promise.resolve({ count, error: null }).then(res),
+      order: () => c,
+      limit: () => c,
+      returns: () => c,
+      then: (res) => Promise.resolve({ count, error: null }).then(res),
     };
     return c;
   }
 
-  const dataBuilder: any = {
+  const dataBuilder: QueryBuilder = {
     select(...args: unknown[]) {
       const isCount =
         args[1] != null &&
@@ -37,8 +50,7 @@ function makeBuilder({
     order: () => dataBuilder,
     limit: () => dataBuilder,
     returns: () => dataBuilder,
-    then: (res: (v: any) => void) =>
-      Promise.resolve({ data, error: dataError }).then(res),
+    then: (res) => Promise.resolve({ data, error: dataError }).then(res),
   };
   return dataBuilder;
 }
@@ -98,7 +110,7 @@ describe("Dashboard (developer/page)", () => {
 
   it("shows the error state when the Supabase data query fails", async () => {
     mockFrom.mockReturnValue(
-      makeBuilder({ data: null as unknown, dataError: { message: "DB connection refused" } })
+      makeBuilder({ data: null, dataError: { message: "DB connection refused" } })
     );
 
     render(<Dashboard />);
