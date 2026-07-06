@@ -199,6 +199,7 @@ export default function ArtistsPage() {
               value={inputValue}
               onChange={handleFilterInput}
               placeholder="Filter artists..."
+              aria-label="Filter artists by name"
               style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '12px', padding: '14px 20px 14px 48px', color: '#fff', fontSize: '15px', fontFamily: 'var(--font-dm-sans, system-ui)', outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms' }}
               onFocus={e => { e.currentTarget.style.borderColor = 'rgba(255,0,110,0.5)' }}
               onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)' }}

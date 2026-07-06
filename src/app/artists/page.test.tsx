@@ -202,6 +202,15 @@ describe("ArtistsPage", () => {
 
     await waitFor(() => expect(screen.getByText("No artists found")).toBeInTheDocument());
   });
+
+  it("filter input has an accessible aria-label", async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [], error: null }));
+
+    render(<ArtistsPage />);
+
+    await waitFor(() => expect(screen.getByText("No artists found")).toBeInTheDocument());
+    expect(screen.getByRole("textbox", { name: /filter artists by name/i })).toBeInTheDocument();
+  });
 });
 
 beforeEach(() => {

@@ -187,6 +187,15 @@ describe("VenuesPage", () => {
 
     await waitFor(() => expect(screen.getByText("No venues found")).toBeInTheDocument());
   });
+
+  it("filter input has an accessible aria-label", async () => {
+    mockRows([]);
+
+    render(<VenuesPage />);
+
+    await waitFor(() => expect(screen.getByText("No venues found")).toBeInTheDocument());
+    expect(screen.getByRole("textbox", { name: /filter venues by name/i })).toBeInTheDocument();
+  });
 });
 
 describe("VenuesPage — load error handling", () => {
