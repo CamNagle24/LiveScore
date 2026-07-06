@@ -13,7 +13,7 @@ import Dashboard from "./page";
 // vs data queries and resolves to the appropriate shape.
 function makeBuilder({
   count = 0,
-  data = [] as unknown[],
+  data = [] as unknown[] | null,
   dataError = null as unknown,
 } = {}) {
   function countChain(): any {
@@ -98,7 +98,7 @@ describe("Dashboard (developer/page)", () => {
 
   it("shows the error state when the Supabase data query fails", async () => {
     mockFrom.mockReturnValue(
-      makeBuilder({ data: null as unknown, dataError: { message: "DB connection refused" } })
+      makeBuilder({ data: null, dataError: { message: "DB connection refused" } })
     );
 
     render(<Dashboard />);
