@@ -17,6 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${siteUrl}${path}`,
     changeFrequency,
     priority,
+    lastModified: new Date(),
   }));
 
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -26,15 +27,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   const { data } = await supabase
     .from("performances")
-    .select("artist_name")
+    .select("artist_name, performance_date")
     .not("artist_name", "is", null);
 
-  const artistNames = [...new Set((data ?? []).map((r) => String(r.artist_name)))];
+  const artistDates = new Map<string, Date | null>();
+  for (const row of data ?? []) {
+    const name = String(row.artist_name);
+    const date = row.performance_date ? new Date(row.performance_date) : null;
+    const existing = artistDates.get(name);
+    if (!artistDates.has(name) || (date && (!existing || date > existing))) {
+      artistDates.set(name, date);
+    }
+  }
 
-  const artistEntries: MetadataRoute.Sitemap = artistNames.map((name) => ({
+  const artistEntries: MetadataRoute.Sitemap = [...artistDates.entries()].map(([name, latestDate]) => ({
     url: `${siteUrl}/artist/${encodeURIComponent(name)}`,
     changeFrequency: "weekly",
     priority: 0.6,
+    lastModified: latestDate ?? new Date(),
   }));
 
   return [...staticEntries, ...artistEntries];
