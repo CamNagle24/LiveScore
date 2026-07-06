@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { getYouTubeThumbnail, getBestSource } from '@/lib/youtube'
 import { computeStats } from '@/lib/computeStats'
@@ -80,8 +81,8 @@ function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRe
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
         {thumbSrc ? (
-          <img src={thumbSrc} alt={p.event_name || 'Performance'} onError={handleThumbErr}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }} />
+          <Image src={thumbSrc} alt={p.event_name || 'Performance'} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" onError={handleThumbErr}
+            style={{ objectFit: 'cover', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.07)', fontSize: '36px' }}>♪</div>
         )}
@@ -150,8 +151,8 @@ function TopPerfCard({ p, thumb: thumbInit, onWatch }: { p: Performance; thumb: 
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '62%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0d0015)', overflow: 'hidden' }}>
         {thumbSrc ? (
-          <img src={thumbSrc} alt={p.event_name || ''} onError={handleImgErr}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }} />
+          <Image src={thumbSrc} alt={p.event_name || ''} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" onError={handleImgErr}
+            style={{ objectFit: 'cover', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 350ms ease' }} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', color: 'rgba(255,255,255,0.06)' }}>♪</div>
         )}
@@ -248,10 +249,12 @@ export default function ProfilePage() {
             {/* Avatar */}
             <div style={{ width: '96px', height: '96px', borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 30px rgba(255,0,110,0.3)', border: '3px solid rgba(255,0,110,0.3)', overflow: 'hidden', background: 'linear-gradient(135deg,#FF006E,#FF7A00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '44px', color: '#fff' }}>
               {avatarUrl ? (
-                <img
+                <Image
                   src={avatarUrl}
                   alt="Profile"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
+                  width={96}
+                  height={96}
+                  style={{ objectFit: 'cover', objectPosition: 'center top' }}
                 />
               ) : initial}
             </div>
