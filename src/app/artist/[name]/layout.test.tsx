@@ -70,4 +70,14 @@ describe("generateMetadata (artist layout)", () => {
       "https://livescore.app/artist/SZA"
     );
   });
+
+  it("includes openGraph.images so social link previews have an image", async () => {
+    const { generateMetadata } = await import("./layout");
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ name: "Radiohead" }),
+    });
+
+    expect(metadata.openGraph?.images).toBeTruthy();
+  });
 });
