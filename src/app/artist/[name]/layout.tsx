@@ -19,6 +19,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${artist} · LiveScore`,
       description: `Live performances by ${artist} and where to watch them.`,
+      images: [{ url: '/og-default.png' }],
     },
   };
 }
