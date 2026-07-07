@@ -245,6 +245,16 @@ describe("SearchPage — stale request cancellation", () => {
   });
 });
 
+describe("SearchPage — accessibility", () => {
+  it("has aria-label='Search performances' on the search input", async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [], error: null }));
+    render(<SearchPage />);
+    const input = await screen.findByLabelText("Search performances");
+    expect(input).toBeInTheDocument();
+    expect(input.tagName).toBe("INPUT");
+  });
+});
+
 describe("SearchPage — analytics", () => {
   beforeEach(() => {
     mockFrom.mockReturnValue(makeBuilder({ data: [], error: null }));

@@ -233,6 +233,7 @@ function SearchPageInner() {
               onChange={handleInput}
               onKeyDown={handleKeyDown}
               placeholder='Try "Kendrick Lamar", "Glastonbury", "Coachella"...'
+              aria-label="Search performances"
               autoFocus
               style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '16px', padding: '18px 52px 18px 52px', color: '#fff', fontSize: '17px', fontFamily: 'var(--font-dm-sans, system-ui)', outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms' }}
               onFocus={e => { e.currentTarget.style.borderColor = 'rgba(255,0,110,0.6)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,0,110,0.12)' }}
