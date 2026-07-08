@@ -59,10 +59,18 @@ function PerfCard({ p, delay }: { p: Performance; delay: number }) {
   return (
     <div
       className="card-in"
+      role="link"
+      tabIndex={0}
       style={{ animationDelay: `${delay}ms`, borderRadius: '14px', overflow: 'hidden', background: 'rgba(255,255,255,0.04)', border: `1px solid ${hovered ? 'rgba(255,0,110,0.35)' : 'rgba(255,255,255,0.07)'}`, transform: hovered ? 'translateY(-4px)' : 'none', boxShadow: hovered ? '0 20px 40px rgba(0,0,0,0.5)' : 'none', transition: 'all 200ms ease', cursor: best ? 'pointer' : 'default' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => best && window.open(best.url, '_blank', 'noopener,noreferrer')}
+      onKeyDown={e => {
+        if ((e.key === 'Enter' || e.key === ' ') && best) {
+          e.preventDefault()
+          window.open(best.url, '_blank', 'noopener,noreferrer')
+        }
+      }}
     >
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0a000f)', overflow: 'hidden' }}>
