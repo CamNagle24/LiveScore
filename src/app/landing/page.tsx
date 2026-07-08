@@ -215,7 +215,15 @@ function EventCard({ drop }: { drop: EventDrop }) {
   const [hovered, setHovered] = useState(false)
   return (
     <div
+      role="link"
+      tabIndex={0}
       onClick={() => router.push(`/search?q=${encodeURIComponent(drop.title)}`)}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          router.push(`/search?q=${encodeURIComponent(drop.title)}`)
+        }
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
