@@ -211,6 +211,17 @@ describe("ArtistsPage", () => {
     await waitFor(() => expect(screen.getByText("No artists found")).toBeInTheDocument());
     expect(screen.getByRole("textbox", { name: /filter artists by name/i })).toBeInTheDocument();
   });
+
+  it("results-count badge has aria-live=polite and aria-atomic=true", async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: rowsFor(["Adele"]), error: null }));
+
+    render(<ArtistsPage />);
+
+    await waitFor(() => expect(screen.getByText("Adele")).toBeInTheDocument());
+    const badge = screen.getByText(/\d+ ARTISTS/);
+    expect(badge).toHaveAttribute("aria-live", "polite");
+    expect(badge).toHaveAttribute("aria-atomic", "true");
+  });
 });
 
 beforeEach(() => {

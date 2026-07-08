@@ -196,6 +196,17 @@ describe("VenuesPage", () => {
     await waitFor(() => expect(screen.getByText("No venues found")).toBeInTheDocument());
     expect(screen.getByRole("textbox", { name: /filter venues by name/i })).toBeInTheDocument();
   });
+
+  it("results-count badge has aria-live=polite and aria-atomic=true", async () => {
+    mockRows([{ venue_name: "A Arena", artist_name: "X" }]);
+
+    render(<VenuesPage />);
+
+    await waitFor(() => expect(screen.getByText("A Arena")).toBeInTheDocument());
+    const badge = screen.getByText(/\d+ VENUES/);
+    expect(badge).toHaveAttribute("aria-live", "polite");
+    expect(badge).toHaveAttribute("aria-atomic", "true");
+  });
 });
 
 describe("VenuesPage — load error handling", () => {
