@@ -57,4 +57,20 @@ describe("LandingPage", () => {
     fireEvent.click(screen.getByText("EXPLORE NOW"));
     expect(mockPush).toHaveBeenCalledWith("/search");
   });
+
+  it("EventCard is keyboard-focusable (tabIndex=0) and Enter fires router push", () => {
+    render(<LandingPage />);
+    const cards = screen.getAllByRole("link");
+    const eventCard = cards[0];
+    expect(eventCard).toHaveAttribute("tabindex", "0");
+    fireEvent.keyDown(eventCard, { key: "Enter" });
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("/search?q="));
+  });
+
+  it("EventCard Space key fires router push", () => {
+    render(<LandingPage />);
+    const [firstCard] = screen.getAllByRole("link");
+    fireEvent.keyDown(firstCard, { key: " " });
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("/search?q="));
+  });
 });
