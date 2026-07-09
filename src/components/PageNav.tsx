@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useUser, useSignOut } from '@/lib/useUser'
 
@@ -10,6 +10,8 @@ export function PageNav() {
   const { user, loading } = useUser()
   const signOut = useSignOut()
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const avatarBtnRef = useRef<HTMLButtonElement>(null)
 
   const activeTab =
     pathname === '/artists' ? 'Artists'
@@ -26,6 +28,41 @@ export function PageNav() {
     else if (tab === 'Artists') router.push('/artists')
     else if (tab === 'Venues') router.push('/venues')
     else if (tab === 'Profile') router.push('/profile')
+  }
+
+  // Auto-focus first menu item when menu opens
+  useEffect(() => {
+    if (menuOpen && menuRef.current) {
+      const firstBtn = menuRef.current.querySelector<HTMLButtonElement>('button')
+      firstBtn?.focus()
+    }
+  }, [menuOpen])
+
+  const handleMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      setMenuOpen(false)
+      avatarBtnRef.current?.focus()
+      return
+    }
+    if (e.key === 'Tab' && menuRef.current) {
+      const items = Array.from(
+        menuRef.current.querySelectorAll<HTMLButtonElement>('button')
+      )
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey) {
+        if (e.target === first) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else {
+        if (e.target === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
   }
 
   const avatarUrl = (user?.user_metadata?.avatar_url as string | undefined) || null
@@ -55,6 +92,7 @@ export function PageNav() {
         {loading ? null : user ? (
           <div style={{ position: 'relative' }}>
             <button
+              ref={avatarBtnRef}
               onClick={() => setMenuOpen(o => !o)}
               aria-label="Account menu"
               style={{ width: '38px', height: '38px', borderRadius: '50%', border: menuOpen ? '2px solid #FF006E' : '2px solid rgba(255,255,255,0.2)', background: avatarUrl ? 'transparent' : 'linear-gradient(135deg,#FF006E,#FF7A00)', overflow: 'hidden', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '15px', fontFamily: 'var(--font-dm-sans, system-ui)' }}
@@ -67,7 +105,11 @@ export function PageNav() {
             {menuOpen && (
               <>
                 <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                <div style={{ position: 'absolute', top: '46px', right: 0, zIndex: 41, background: '#0d0820', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '6px', minWidth: '180px', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}>
+                <div
+                  ref={menuRef}
+                  onKeyDown={handleMenuKeyDown}
+                  style={{ position: 'absolute', top: '46px', right: 0, zIndex: 41, background: '#0d0820', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '6px', minWidth: '180px', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}
+                >
                   <div style={{ padding: '8px 12px', fontSize: '12px', color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
                   <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
                   <button onClick={() => { setMenuOpen(false); router.push('/profile') }} style={menuItemStyle}>Profile</button>
