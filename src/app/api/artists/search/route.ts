@@ -1,19 +1,6 @@
 import { NextRequest } from 'next/server'
 import { consumeToken, getClientIp } from '@/lib/rateLimit'
-
-interface AudioDBArtist {
-  strArtist?: string
-  strArtistThumb?: string
-  strArtistFanart?: string
-  strArtistFanart2?: string
-  strGenre?: string
-  strCountry?: string
-  strBiographyEN?: string
-}
-
-interface AudioDBResponse {
-  artists: AudioDBArtist[] | null
-}
+import { searchArtists, AudioDbArtist } from '@/lib/audioDb'
 
 const MAX_QUERY_LENGTH = 100
 
@@ -45,23 +32,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const url = `https://www.theaudiodb.com/api/v1/json/2/search.php?s=${encodeURIComponent(q)}`
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'LiveScore/1.0' },
-      next: { revalidate: 3600 }, // cache 1hr
-      signal: AbortSignal.timeout(5000),
-    })
-
-    if (!res.ok) {
-      return Response.json({ artists: [] })
-    }
-
-    const data: AudioDBResponse = await res.json()
-    if (!data.artists) {
-      return Response.json({ artists: [] })
-    }
-
-    const artists = data.artists.slice(0, 12).map((a: AudioDBArtist) => ({
+    const raw = await searchArtists(q)
+    const artists = raw.slice(0, 12).map((a: AudioDbArtist) => ({
       name: a.strArtist || '',
       genre: a.strGenre || '',
       country: a.strCountry || '',
@@ -69,7 +41,6 @@ export async function GET(request: NextRequest) {
       fanart: a.strArtistFanart || a.strArtistFanart2 || null,
       biography: (a.strBiographyEN || '').slice(0, 200),
     }))
-
     return Response.json({ artists })
   } catch {
     return Response.json({ artists: [] }, { status: 500 })
