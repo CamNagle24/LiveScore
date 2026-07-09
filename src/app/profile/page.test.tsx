@@ -186,6 +186,32 @@ describe("ProfilePage", () => {
     expect(screen.getByText("YouTube")).toBeInTheDocument();
   });
 
+  it("(h) reminder toggle calls Supabase update with correct args", async () => {
+    auth.user = { id: "u1", email: "user@test.com" };
+
+    const innerEq = vi.fn().mockResolvedValue({ data: null, error: null });
+    const outerEq = vi.fn().mockReturnValue({ eq: innerEq });
+    const mockUpdate = vi.fn().mockReturnValue({ eq: outerEq });
+
+    // First call: load saved performances
+    mockFrom.mockReturnValueOnce(makeBuilder({ data: [makePerf("p1")], error: null }));
+    // Subsequent calls: the reminder update
+    mockFrom.mockReturnValue({ update: mockUpdate });
+
+    render(<ProfilePage />);
+    await waitFor(() =>
+      expect(screen.getAllByText("Concert p1").length).toBeGreaterThan(0)
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /toggle reminder/i }));
+
+    await waitFor(() =>
+      expect(mockUpdate).toHaveBeenCalledWith({ reminder_opt_in: true })
+    );
+    expect(outerEq).toHaveBeenCalledWith("user_id", "u1");
+    expect(innerEq).toHaveBeenCalledWith("performance_id", "p1");
+  });
+
   it("(g) optimistic remove rolls back the list on toggleSaved rejection", async () => {
     auth.user = { id: "u1", email: "user@test.com" };
     mockFrom.mockReturnValue(
