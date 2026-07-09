@@ -54,7 +54,13 @@ function formatDate(d: string | null) {
 
 // ─── Saved Performance Card ───────────────────────────────────────────────────
 
-function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRemove: (id: string) => void }) {
+function SavedCard({ p, delay, onRemove, reminderOptIn, onToggleReminder }: {
+  p: Performance
+  delay: number
+  onRemove: (id: string) => void
+  reminderOptIn: boolean
+  onToggleReminder: (id: string) => void
+}) {
   const router = useRouter()
   const [hovered, setHovered] = useState(false)
   const best = getBestSource(p.watch_sources)
@@ -124,6 +130,15 @@ function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRe
             {p.artist_name}
           </div>
         </div>
+        {/* Reminder toggle — data layer only, no delivery yet */}
+        <button
+          onClick={e => { e.stopPropagation(); onToggleReminder(p.id) }}
+          aria-label="Toggle reminder"
+          aria-pressed={reminderOptIn}
+          style={{ marginTop: '10px', background: reminderOptIn ? 'rgba(255,0,110,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${reminderOptIn ? 'rgba(255,0,110,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '6px', padding: '4px 10px', color: reminderOptIn ? '#FF006E' : 'rgba(255,255,255,0.35)', fontSize: '11px', cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', transition: 'all 150ms', display: 'flex', alignItems: 'center', gap: '4px' }}
+        >
+          🔔 {reminderOptIn ? 'Reminder on' : 'Remind me'}
+        </button>
       </div>
     </div>
   )
@@ -184,6 +199,7 @@ export default function ProfilePage() {
   const [retryKey, setRetryKey] = useState(0)
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'saved' | 'stats'>('saved')
+  const [reminderOptIns, setReminderOptIns] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     if (userLoading) return
@@ -199,14 +215,20 @@ export default function ProfilePage() {
       ensureSavedLoaded(user.id)
       const { data, error } = await supabase
         .from('saved_performances')
-        .select(`performance:performances(id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service))`)
+        .select(`reminder_opt_in, performance:performances(id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service))`)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (!active) return
       if (error) { setLoadError(true); setLoading(false); return }
-      const rows = (data as unknown as { performance: Performance | null }[] | null) || []
-      setSaved(rows.map(r => r.performance).filter((p): p is Performance => !!p))
+      const rows = (data as unknown as { reminder_opt_in: boolean; performance: Performance | null }[] | null) || []
+      const optIns: Record<string, boolean> = {}
+      const perfs = rows.map(r => {
+        if (r.performance) optIns[r.performance.id] = r.reminder_opt_in ?? false
+        return r.performance
+      }).filter((p): p is Performance => !!p)
+      setSaved(perfs)
+      setReminderOptIns(optIns)
       setLoading(false)
     }
     load()
@@ -229,6 +251,18 @@ export default function ProfilePage() {
         setSaved(prev)
         setRemoveError("Couldn't remove. Try again.")
       }
+    }
+  }
+
+  const handleToggleReminder = async (id: string) => {
+    const newVal = !reminderOptIns[id]
+    setReminderOptIns(prev => ({ ...prev, [id]: newVal }))
+    if (user) {
+      await supabase
+        .from('saved_performances')
+        .update({ reminder_opt_in: newVal })
+        .eq('user_id', user.id)
+        .eq('performance_id', id)
     }
   }
 
@@ -364,7 +398,7 @@ export default function ProfilePage() {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '18px' }}>
                   {saved.map((p, i) => (
-                    <SavedCard key={p.id} p={p} delay={i * 40} onRemove={handleRemove} />
+                    <SavedCard key={p.id} p={p} delay={i * 40} onRemove={handleRemove} reminderOptIn={reminderOptIns[p.id] ?? false} onToggleReminder={handleToggleReminder} />
                   ))}
                 </div>
               )}
