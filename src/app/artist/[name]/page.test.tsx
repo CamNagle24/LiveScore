@@ -126,4 +126,18 @@ describe('ArtistPage', () => {
       expect(screen.getByText(/Couldn't load performances/)).toBeTruthy()
     )
   })
+
+  it('calls notFound() when performances list is empty after load', async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [], error: null }))
+    render(<ArtistPage />)
+    await waitFor(() => expect(mockNotFound).toHaveBeenCalled())
+  })
+
+  it('renders PerfCards with aria-label containing event and artist name', async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [makePerf('p1')], error: null }))
+    render(<ArtistPage />)
+    await waitFor(() => expect(screen.queryByText('Loading performances...')).toBeNull())
+    const card = screen.getByLabelText(/Watch Concert p1 by Taylor Swift/i)
+    expect(card).toBeTruthy()
+  })
 })
