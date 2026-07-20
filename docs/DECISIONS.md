@@ -2,6 +2,19 @@
 
 Append-only. Newest first. One short entry per meaningful decision.
 
+## 2026-07-20 — Work loop yielded 0 eligible tasks; all 18 Queue items blocked/in-flight
+This run found all 18 unchecked Queue items either already have an open `[routine]` PR (16 items)
+or are architecturally blocked (2 items). No new implementation work could proceed without
+duplicating in-flight PRs. The grooming pass added 13 new independently-shippable tasks covering:
+CI coverage threshold hardening, rate-limiter memory-cap, `<Image>` `sizes` prop, accessibility
+improvements (aria-pressed, role="search", aria-label group), loading.tsx smoke tests, OG type
+metadata, formatDate extraction, layout metadata tests, URL sync for search, and a doc-only
+ARCHITECTURE.md update. ARCHITECTURE.md's known-gaps section was updated to remove two stale items
+(img-migration resolved in #54–#55; security headers resolved in #67) and add a note about the
+in-memory rate-limiter's process-local scope.
+**Why:** better to accurately surface the work-in-flight state and replenish the backlog with
+concrete new tasks than to force a duplicate implementation through existing in-flight PRs.
+
 ## 2026-07-01 — Work loop yielded 0 eligible tasks; all 15 Queue items blocked/in-flight/done
 This run found: 8 items with open PRs (#54–#61) — not eligible. 2 items already shipped but not
 ticked off (`artist/[name]/not-found.tsx` in #11; `/search` empty-state in original scaffold).
