@@ -2,6 +2,9 @@
 
 Append-only. Newest first. One short entry per meaningful decision.
 
+## 2026-07-27 — Work loop yielded 0 eligible tasks; all queue items have open routine PRs or are blocked
+Source-verified that `src/app/artist/[name]/error.tsx` does NOT exist on `main` despite the existing queue task asserting it does. Marked that task blocked and replaced it with a single PR-sized task that creates the file and its test together. Added 10 new independently-shippable tasks targeting: the missing artist route error boundary, retry buttons across four pages with static error states, ARIA/a11y gaps in landing and profile pages, inline error UI for the developer dashboard, a missing developer route skeleton, a batch of layout metadata tests, and the remaining raw `<img>` in `PageNav`. **Why:** source-verifying queue entries before acting on them (established decision from 2026-06-27) caught a wrong premise early; adding concrete new work each run keeps the backlog healthy even when the current queue is fully in-flight.
+
 ## 2026-07-01 — Work loop yielded 0 eligible tasks; all 15 Queue items blocked/in-flight/done
 This run found: 8 items with open PRs (#54–#61) — not eligible. 2 items already shipped but not
 ticked off (`artist/[name]/not-found.tsx` in #11; `/search` empty-state in original scaffold).
