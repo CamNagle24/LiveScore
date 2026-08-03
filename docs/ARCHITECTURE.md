@@ -32,5 +32,4 @@ backend; server components / route handlers use the Supabase server client.
   not client components") and is the direct cause of the Cache-Control task being blocked (`revalidate`/
   `unstable_cache` are server-only). Migrating these pages to server components with a client shell is
   the long-term fix but is out of scope for any single routine PR.
-- **Missing security headers:** `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy`
-  are absent from `next.config.ts`'s `headers()` (only CSP is set). One task in the Queue adds all three.
+- **Missing HSTS header:** `Strict-Transport-Security` is absent from `next.config.ts`'s `headers()` (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy` are covered by merged/pending PRs). A task in the Queue adds HSTS.
