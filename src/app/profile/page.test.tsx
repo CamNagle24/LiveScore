@@ -66,6 +66,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     select: () => b,
     eq: () => b,
     order: () => b,
+    update: () => b,
     then: (resolve, reject) => Promise.resolve(result).then(resolve, reject),
   };
   return b;
@@ -73,9 +74,12 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
 
 function makePerf(
   id: string,
-  overrides: Record<string, unknown> = {}
+  overrides: Record<string, unknown> = {},
+  reminderOptIn = false
 ) {
   return {
+    performance_id: id,
+    reminder_opt_in: reminderOptIn,
     performance: {
       id,
       artist_name: `Artist ${id}`,
@@ -184,6 +188,36 @@ describe("ProfilePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Stats" }));
     expect(screen.getByText("PLATFORM BREAKDOWN")).toBeInTheDocument();
     expect(screen.getByText("YouTube")).toBeInTheDocument();
+  });
+
+  it("(h) reminder toggle button is present on each saved performance card", async () => {
+    auth.user = { id: "u1", email: "user@test.com" };
+    mockFrom.mockReturnValue(
+      makeBuilder({ data: [makePerf("p1"), makePerf("p2")], error: null })
+    );
+    render(<ProfilePage />);
+    await waitFor(() =>
+      expect(screen.getAllByText("Concert p1").length).toBeGreaterThan(0)
+    );
+    const remindBtns = screen.getAllByRole("button", { name: /remind me|reminder on|enable reminder|disable reminder/i });
+    expect(remindBtns.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("(i) clicking the reminder toggle calls Supabase update with flipped opt-in value", async () => {
+    auth.user = { id: "u1", email: "user@test.com" };
+    // First call: load saved_performances; second call: update reminder_opt_in
+    mockFrom
+      .mockReturnValueOnce(makeBuilder({ data: [makePerf("p1", {}, false)], error: null }))
+      .mockReturnValueOnce(makeBuilder({ data: null, error: null }));
+    render(<ProfilePage />);
+    await waitFor(() =>
+      expect(screen.getAllByText("Concert p1").length).toBeGreaterThan(0)
+    );
+    const remindBtn = screen.getByRole("button", { name: /remind me|enable reminder/i });
+    fireEvent.click(remindBtn);
+    await waitFor(() => expect(mockFrom).toHaveBeenCalledTimes(2));
+    // The second from() call should be for the update
+    expect(mockFrom).toHaveBeenNthCalledWith(2, "saved_performances");
   });
 
   it("(g) optimistic remove rolls back the list on toggleSaved rejection", async () => {
