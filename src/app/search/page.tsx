@@ -229,6 +229,7 @@ function SearchPageInner() {
             <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', fontSize: '20px', pointerEvents: 'none' }}>⌕</div>
             <input
               type="text"
+              aria-label="Search performances"
               value={query}
               onChange={handleInput}
               onKeyDown={handleKeyDown}
