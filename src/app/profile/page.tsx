@@ -54,7 +54,7 @@ function formatDate(d: string | null) {
 
 // ─── Saved Performance Card ───────────────────────────────────────────────────
 
-function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRemove: (id: string) => void }) {
+function SavedCard({ p, delay, onRemove, reminderOptIn, onToggleReminder }: { p: Performance; delay: number; onRemove: (id: string) => void; reminderOptIn: boolean; onToggleReminder: () => void }) {
   const router = useRouter()
   const [hovered, setHovered] = useState(false)
   const best = getBestSource(p.watch_sources)
@@ -124,6 +124,17 @@ function SavedCard({ p, delay, onRemove }: { p: Performance; delay: number; onRe
             {p.artist_name}
           </div>
         </div>
+        {/* Reminder toggle */}
+        <div style={{ marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+          <button
+            onClick={e => { e.stopPropagation(); onToggleReminder() }}
+            aria-label={reminderOptIn ? 'Disable reminder' : 'Enable reminder'}
+            style={{ background: reminderOptIn ? 'rgba(255,0,110,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${reminderOptIn ? 'rgba(255,0,110,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'var(--font-dm-sans, system-ui)', fontSize: '11px', color: reminderOptIn ? '#FF006E' : 'rgba(255,255,255,0.4)', fontWeight: 500, transition: 'all 150ms', display: 'flex', alignItems: 'center', gap: '5px' }}
+          >
+            <span aria-hidden="true">{reminderOptIn ? '🔔' : '🔕'}</span>
+            {reminderOptIn ? 'Reminder on' : 'Remind me'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -179,6 +190,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const { user, loading: userLoading } = useUser()
   const [saved, setSaved] = useState<Performance[]>([])
+  const [reminderOptIns, setReminderOptIns] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
@@ -199,14 +211,18 @@ export default function ProfilePage() {
       ensureSavedLoaded(user.id)
       const { data, error } = await supabase
         .from('saved_performances')
-        .select(`performance:performances(id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service))`)
+        .select(`performance_id, reminder_opt_in, performance:performances(id, artist_name, event_name, venue_name, performance_date, performance_type, duration_minutes, watch_sources(id, url, source_status, subscription_service))`)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (!active) return
       if (error) { setLoadError(true); setLoading(false); return }
-      const rows = (data as unknown as { performance: Performance | null }[] | null) || []
-      setSaved(rows.map(r => r.performance).filter((p): p is Performance => !!p))
+      const rows = (data as unknown as { performance_id: string; reminder_opt_in: boolean; performance: Performance | null }[] | null) || []
+      const perfs = rows.map(r => r.performance).filter((p): p is Performance => !!p)
+      const opts: Record<string, boolean> = {}
+      rows.forEach(r => { if (r.performance) opts[r.performance.id] = !!r.reminder_opt_in })
+      setSaved(perfs)
+      setReminderOptIns(opts)
       setLoading(false)
     }
     load()
@@ -229,6 +245,20 @@ export default function ProfilePage() {
         setSaved(prev)
         setRemoveError("Couldn't remove. Try again.")
       }
+    }
+  }
+
+  const handleToggleReminder = async (performanceId: string) => {
+    if (!user) return
+    const current = reminderOptIns[performanceId] ?? false
+    setReminderOptIns(prev => ({ ...prev, [performanceId]: !current }))
+    const { error } = await supabase
+      .from('saved_performances')
+      .update({ reminder_opt_in: !current })
+      .eq('user_id', user.id)
+      .eq('performance_id', performanceId)
+    if (error) {
+      setReminderOptIns(prev => ({ ...prev, [performanceId]: current }))
     }
   }
 
@@ -364,7 +394,7 @@ export default function ProfilePage() {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '18px' }}>
                   {saved.map((p, i) => (
-                    <SavedCard key={p.id} p={p} delay={i * 40} onRemove={handleRemove} />
+                    <SavedCard key={p.id} p={p} delay={i * 40} onRemove={handleRemove} reminderOptIn={reminderOptIns[p.id] ?? false} onToggleReminder={() => handleToggleReminder(p.id)} />
                   ))}
                 </div>
               )}
