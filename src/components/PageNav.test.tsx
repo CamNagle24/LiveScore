@@ -135,40 +135,46 @@ describe("PageNav — account menu focus trap", () => {
     auth.user = { email: "test@example.com" };
   });
 
-  it("Escape closes the account menu", () => {
+  it("Escape key closes the account menu", () => {
     render(<PageNav />);
+
     fireEvent.click(screen.getByRole("button", { name: /account menu/i }));
     expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
 
-    const profileBtn = screen.getByRole("button", { name: /^profile$/i });
-    fireEvent.keyDown(profileBtn, { key: "Escape" });
+    const signOutBtn = screen.getByRole("button", { name: /sign out/i });
+    const menuContainer = signOutBtn.parentElement!;
+    fireEvent.keyDown(menuContainer, { key: "Escape" });
 
     expect(screen.queryByRole("button", { name: /sign out/i })).not.toBeInTheDocument();
   });
 
-  it("Tab from the last menu item wraps focus to the first", () => {
+  it("Tab from the last menu item (Sign out) wraps focus to the first (Profile)", () => {
     render(<PageNav />);
+
     fireEvent.click(screen.getByRole("button", { name: /account menu/i }));
 
-    const profileBtn = screen.getByRole("button", { name: /^profile$/i });
     const signOutBtn = screen.getByRole("button", { name: /sign out/i });
+    const profileBtn = screen.getByRole("button", { name: /^profile$/i });
+    const menuContainer = signOutBtn.parentElement!;
 
     signOutBtn.focus();
-    fireEvent.keyDown(signOutBtn, { key: "Tab" });
+    fireEvent.keyDown(menuContainer, { key: "Tab", shiftKey: false });
 
-    expect(profileBtn).toHaveFocus();
+    expect(document.activeElement).toBe(profileBtn);
   });
 
-  it("Shift+Tab from the first menu item wraps focus to the last", () => {
+  it("Shift+Tab from the first menu item (Profile) wraps focus to the last (Sign out)", () => {
     render(<PageNav />);
+
     fireEvent.click(screen.getByRole("button", { name: /account menu/i }));
 
-    const profileBtn = screen.getByRole("button", { name: /^profile$/i });
     const signOutBtn = screen.getByRole("button", { name: /sign out/i });
+    const profileBtn = screen.getByRole("button", { name: /^profile$/i });
+    const menuContainer = signOutBtn.parentElement!;
 
     profileBtn.focus();
-    fireEvent.keyDown(profileBtn, { key: "Tab", shiftKey: true });
+    fireEvent.keyDown(menuContainer, { key: "Tab", shiftKey: true });
 
-    expect(signOutBtn).toHaveFocus();
+    expect(document.activeElement).toBe(signOutBtn);
   });
 });
