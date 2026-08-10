@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 
 const { mockNotFound, mockParams, mockFrom, mockGetBestSource } = vi.hoisted(() => ({
   mockNotFound: vi.fn(),
@@ -125,5 +125,44 @@ describe('ArtistPage', () => {
     await waitFor(() =>
       expect(screen.getByText(/Couldn't load performances/)).toBeTruthy()
     )
+  })
+
+  it('PerfCard with a watch link has role=link, tabIndex=0, and fires window.open on Enter', async () => {
+    const mockSource = { url: 'https://youtube.com/watch?v=test', platform: 'YouTube', isYouTube: true }
+    mockGetBestSource.mockReturnValue(mockSource)
+    const perf = {
+      ...makePerf('p1'),
+      watch_sources: [{ id: 'ws1', url: 'https://youtube.com/watch?v=test', source_status: 'active', subscription_service: null }],
+    }
+    mockFrom.mockReturnValue(makeBuilder({ data: [perf], error: null }))
+
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    render(<ArtistPage />)
+    await waitFor(() => expect(screen.queryByText('Loading performances...')).toBeNull())
+
+    const card = screen.getByRole('link', { name: 'Concert p1' })
+    expect(card).toHaveAttribute('tabIndex', '0')
+    fireEvent.keyDown(card, { key: 'Enter' })
+    expect(openSpy).toHaveBeenCalledWith('https://youtube.com/watch?v=test', '_blank', 'noopener,noreferrer')
+    openSpy.mockRestore()
+  })
+
+  it('PerfCard fires window.open on Space key', async () => {
+    const mockSource = { url: 'https://youtube.com/watch?v=space', platform: 'YouTube', isYouTube: true }
+    mockGetBestSource.mockReturnValue(mockSource)
+    const perf = {
+      ...makePerf('p2'),
+      watch_sources: [{ id: 'ws2', url: 'https://youtube.com/watch?v=space', source_status: 'active', subscription_service: null }],
+    }
+    mockFrom.mockReturnValue(makeBuilder({ data: [perf], error: null }))
+
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    render(<ArtistPage />)
+    await waitFor(() => expect(screen.queryByText('Loading performances...')).toBeNull())
+
+    const card = screen.getByRole('link', { name: 'Concert p2' })
+    fireEvent.keyDown(card, { key: ' ' })
+    expect(openSpy).toHaveBeenCalledWith('https://youtube.com/watch?v=space', '_blank', 'noopener,noreferrer')
+    openSpy.mockRestore()
   })
 })
