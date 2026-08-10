@@ -63,6 +63,15 @@ function PerfCard({ p, delay }: { p: Performance; delay: number }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => best && window.open(best.url, '_blank', 'noopener,noreferrer')}
+      role={best ? 'link' : undefined}
+      tabIndex={best ? 0 : undefined}
+      aria-label={best ? (p.event_name || 'Live Performance') : undefined}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && best) {
+          e.preventDefault()
+          window.open(best.url, '_blank', 'noopener,noreferrer')
+        }
+      }}
     >
       {/* Thumbnail */}
       <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative', background: 'linear-gradient(135deg,#1a0030,#0a000f)', overflow: 'hidden' }}>
