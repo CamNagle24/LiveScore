@@ -15,9 +15,9 @@ describe("robots", () => {
     );
   });
 
-  it("includes /login in the disallow list", () => {
+  it("includes /login in the disallowed paths", () => {
     const result = robots();
-    const rules = result.rules as { disallow: string[] };
-    expect(rules.disallow).toContain("/login");
+    const disallow = (result.rules as { disallow: string[] }).disallow;
+    expect(disallow).toContain("/login");
   });
 });
