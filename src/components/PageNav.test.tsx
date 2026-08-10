@@ -129,3 +129,52 @@ describe("PageNav — authenticated state (account menu)", () => {
     expect(mockSignOut).toHaveBeenCalledOnce();
   });
 });
+
+describe("PageNav — account menu focus trap", () => {
+  beforeEach(() => {
+    auth.user = { email: "test@example.com" };
+  });
+
+  it("Escape key closes the account menu", () => {
+    render(<PageNav />);
+
+    fireEvent.click(screen.getByRole("button", { name: /account menu/i }));
+    expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
+
+    const signOutBtn = screen.getByRole("button", { name: /sign out/i });
+    const menuContainer = signOutBtn.parentElement!;
+    fireEvent.keyDown(menuContainer, { key: "Escape" });
+
+    expect(screen.queryByRole("button", { name: /sign out/i })).not.toBeInTheDocument();
+  });
+
+  it("Tab from the last menu item (Sign out) wraps focus to the first (Profile)", () => {
+    render(<PageNav />);
+
+    fireEvent.click(screen.getByRole("button", { name: /account menu/i }));
+
+    const signOutBtn = screen.getByRole("button", { name: /sign out/i });
+    const profileBtn = screen.getByRole("button", { name: /^profile$/i });
+    const menuContainer = signOutBtn.parentElement!;
+
+    signOutBtn.focus();
+    fireEvent.keyDown(menuContainer, { key: "Tab", shiftKey: false });
+
+    expect(document.activeElement).toBe(profileBtn);
+  });
+
+  it("Shift+Tab from the first menu item (Profile) wraps focus to the last (Sign out)", () => {
+    render(<PageNav />);
+
+    fireEvent.click(screen.getByRole("button", { name: /account menu/i }));
+
+    const signOutBtn = screen.getByRole("button", { name: /sign out/i });
+    const profileBtn = screen.getByRole("button", { name: /^profile$/i });
+    const menuContainer = signOutBtn.parentElement!;
+
+    profileBtn.focus();
+    fireEvent.keyDown(menuContainer, { key: "Tab", shiftKey: true });
+
+    expect(document.activeElement).toBe(signOutBtn);
+  });
+});
