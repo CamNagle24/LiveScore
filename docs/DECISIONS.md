@@ -2,6 +2,18 @@
 
 Append-only. Newest first. One short entry per meaningful decision.
 
+## 2026-09-15 — Work loop yielded 0 eligible tasks; all 16 non-blocked Queue items have open PRs
+All 16 unchecked, unblocked Queue items (PRs #85–#103 minus merges) already have open `routine/*`
+branches and open GitHub PRs. Two items remain `> blocked:` (Cache-Control and Supabase migration).
+No new implementation work was possible this run. Grooming added 14 new independently-shippable
+tasks covering: CSP hardening (style-src, object-src, base-uri, frame-ancestors), HSTS, COOP,
+`formatDate` extraction, `window.open` → `<a>` element refactor, OG images for 3 layouts, Web App
+Manifest, layout metadata tests, EventTicker ARIA landmark, loading.tsx test, youtube.ts hostname
+hardening, eventDrops data extraction, and root layout/landing layout test coverage.
+**Why:** recording the 0-task state prevents the next run from duplicating investigation; the 14 new
+tasks replenish the backlog above the 12-task minimum and reflect gaps identified by studying the
+current codebase, security headers, accessibility, test coverage, and shared-utility opportunities.
+
 ## 2026-07-01 — Work loop yielded 0 eligible tasks; all 15 Queue items blocked/in-flight/done
 This run found: 8 items with open PRs (#54–#61) — not eligible. 2 items already shipped but not
 ticked off (`artist/[name]/not-found.tsx` in #11; `/search` empty-state in original scaffold).
