@@ -20,17 +20,20 @@ backend; server components / route handlers use the Supabase server client.
 - TypeScript strict. Server-side data access only; never expose service keys client-side.
 
 ## Known gaps (fuel for TASKS.md)
-- **Open PR backlog (2026-07-02):** 7 task PRs open (#54–#58, #60–#61) plus 2 grooming PRs
-  (#59, #62). Queue drift continues to be the main risk: each open PR ticks its task inside its own
-  branch, but until that branch merges the tick is invisible on `main`. Source-verify every Queue
-  entry before implementing it (a file check beats trusting the checkbox).
-- **Raw `<img>` tags remain** in `artist/[name]/page.tsx`, `artists/page.tsx`, and `profile/page.tsx`
-  (search page migrated in #46). Three separate tasks in the Queue target these one-file at a time.
+- **Queue drift:** each routine PR ticks its task inside its own branch; until that branch merges
+  the tick is invisible on `main`. Source-verify every Queue entry before implementing it (a file
+  check beats trusting the checkbox). As of 2026-09-21 all 16 active Queue items have open routine
+  branches — none are eligible for a new routine implementation until a branch is merged or closed.
 - **Client-side data fetching drift:** `artist/[name]/page.tsx`, `search/page.tsx`, `artists/page.tsx`,
   and `venues/page.tsx` are all `'use client'` components fetching directly via the browser Supabase
   singleton. This contradicts the architectural principle ("DB access in server code / `src/lib/**`,
   not client components") and is the direct cause of the Cache-Control task being blocked (`revalidate`/
   `unstable_cache` are server-only). Migrating these pages to server components with a client shell is
   the long-term fix but is out of scope for any single routine PR.
-- **Missing security headers:** `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy`
-  are absent from `next.config.ts`'s `headers()` (only CSP is set). One task in the Queue adds all three.
+- **Incomplete CSP:** `next.config.ts` sets `script-src`, `img-src`, and `connect-src` but omits
+  `style-src` and `font-src`, leaving those directives unrestricted. A task to add `style-src 'self'
+  'unsafe-inline'` and `font-src 'self' https://fonts.gstatic.com` is in the Queue.
+- **In-memory rate limiter unbounded growth:** `src/lib/rateLimit.ts` accumulates one `Bucket` entry
+  per distinct IP seen and never prunes them; a task to add a `MAX_BUCKETS` purge guard is in the Queue.
+- **Accessibility gaps:** `PageNav.tsx`'s logo `<div>` is not keyboard-navigable and the account-menu
+  toggle button lacks `aria-expanded`; tasks for both are in the Queue.
