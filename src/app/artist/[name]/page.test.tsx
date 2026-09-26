@@ -127,42 +127,38 @@ describe('ArtistPage', () => {
     )
   })
 
-  it('PerfCard with a watch link has role=link, tabIndex=0, and fires window.open on Enter', async () => {
-    const mockSource = { url: 'https://youtube.com/watch?v=test', platform: 'YouTube', isYouTube: true }
-    mockGetBestSource.mockReturnValue(mockSource)
+  it('PerfCard with a watch source is keyboard-focusable and opens the link on Enter', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    mockGetBestSource.mockReturnValue({ url: 'https://youtube.com/watch?v=abc', platform: 'YouTube', isYouTube: true })
     const perf = {
-      ...makePerf('p1'),
-      watch_sources: [{ id: 'ws1', url: 'https://youtube.com/watch?v=test', source_status: 'active', subscription_service: null }],
+      id: 'p1',
+      artist_name: 'Taylor Swift',
+      event_name: 'Eras Tour',
+      venue_name: null,
+      performance_date: null,
+      performance_type: null,
+      duration_minutes: null,
+      watch_sources: [{ id: 1, url: 'https://youtube.com/watch?v=abc', source_status: 'verified', subscription_service: null }],
     }
     mockFrom.mockReturnValue(makeBuilder({ data: [perf], error: null }))
 
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     render(<ArtistPage />)
-    await waitFor(() => expect(screen.queryByText('Loading performances...')).toBeNull())
 
-    const card = screen.getByRole('link', { name: 'Concert p1' })
-    expect(card).toHaveAttribute('tabIndex', '0')
+    const card = await screen.findByRole('link', { name: /Watch Eras Tour by Taylor Swift/i })
+    expect(card).toBeTruthy()
+    expect(card.getAttribute('tabindex')).toBe('0')
+
     fireEvent.keyDown(card, { key: 'Enter' })
-    expect(openSpy).toHaveBeenCalledWith('https://youtube.com/watch?v=test', '_blank', 'noopener,noreferrer')
-    openSpy.mockRestore()
+    expect(openSpy).toHaveBeenCalledWith('https://youtube.com/watch?v=abc', '_blank', 'noopener,noreferrer')
   })
 
-  it('PerfCard fires window.open on Space key', async () => {
-    const mockSource = { url: 'https://youtube.com/watch?v=space', platform: 'YouTube', isYouTube: true }
-    mockGetBestSource.mockReturnValue(mockSource)
-    const perf = {
-      ...makePerf('p2'),
-      watch_sources: [{ id: 'ws2', url: 'https://youtube.com/watch?v=space', source_status: 'active', subscription_service: null }],
-    }
-    mockFrom.mockReturnValue(makeBuilder({ data: [perf], error: null }))
+  it('PerfCard without a watch source has no interactive role or tabIndex', async () => {
+    mockGetBestSource.mockReturnValue(null)
+    mockFrom.mockReturnValue(makeBuilder({ data: [makePerf('p1')], error: null }))
 
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     render(<ArtistPage />)
-    await waitFor(() => expect(screen.queryByText('Loading performances...')).toBeNull())
 
-    const card = screen.getByRole('link', { name: 'Concert p2' })
-    fireEvent.keyDown(card, { key: ' ' })
-    expect(openSpy).toHaveBeenCalledWith('https://youtube.com/watch?v=space', '_blank', 'noopener,noreferrer')
-    openSpy.mockRestore()
+    await waitFor(() => expect(screen.queryByText('Loading performances...')).toBeNull())
+    expect(screen.queryByRole('link')).toBeNull()
   })
 })
