@@ -277,3 +277,13 @@ describe("SearchPage — analytics", () => {
     expect(mockTrack).not.toHaveBeenCalled();
   });
 });
+
+describe("SearchPage — search input accessibility", () => {
+  it("has aria-label='Search performances' on the input", async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [], error: null }));
+    render(<SearchPage />);
+    await waitFor(() => expect(mockFrom).toHaveBeenCalled());
+    const input = screen.getByRole("textbox", { name: "Search performances" });
+    expect(input).toBeInTheDocument();
+  });
+});
