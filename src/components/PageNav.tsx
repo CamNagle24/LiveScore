@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useUser, useSignOut } from '@/lib/useUser'
 
@@ -10,6 +10,13 @@ export function PageNav() {
   const { user, loading } = useUser()
   const signOut = useSignOut()
   const [menuOpen, setMenuOpen] = useState(false)
+  const avatarButtonRef = useRef<HTMLButtonElement>(null)
+  const firstMenuRef = useRef<HTMLButtonElement>(null)
+  const lastMenuRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (menuOpen) firstMenuRef.current?.focus()
+  }, [menuOpen])
 
   const activeTab =
     pathname === '/artists' ? 'Artists'
@@ -34,7 +41,7 @@ export function PageNav() {
   return (
     <nav style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(3,0,20,0.9)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', display: 'flex', alignItems: 'center', height: '64px', gap: '32px' }}>
       <div onClick={() => router.push('/landing')} style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '26px', letterSpacing: '0.12em', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flexShrink: 0 }}>
-        <span style={{ width: '28px', height: '28px', background: 'linear-gradient(135deg,#FF006E,#FF7A00)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>▶</span>
+        <span style={{ width: '28px', height: '28px', background: 'linear-gradient(135deg,#FF006E,#FF7A00)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>&#9654;</span>
         LIVESCORE
       </div>
 
@@ -55,6 +62,7 @@ export function PageNav() {
         {loading ? null : user ? (
           <div style={{ position: 'relative' }}>
             <button
+              ref={avatarButtonRef}
               onClick={() => setMenuOpen(o => !o)}
               aria-label="Account menu"
               style={{ width: '38px', height: '38px', borderRadius: '50%', border: menuOpen ? '2px solid #FF006E' : '2px solid rgba(255,255,255,0.2)', background: avatarUrl ? 'transparent' : 'linear-gradient(135deg,#FF006E,#FF7A00)', overflow: 'hidden', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '15px', fontFamily: 'var(--font-dm-sans, system-ui)' }}
@@ -68,37 +76,30 @@ export function PageNav() {
               <>
                 <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
                 <div
-                  onKeyDown={(e) => {
+                  style={{ position: 'absolute', top: '46px', right: 0, zIndex: 41, background: '#0d0820', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '6px', minWidth: '180px', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}
+                  onKeyDown={(e: React.KeyboardEvent) => {
                     if (e.key === 'Escape') {
                       setMenuOpen(false)
-                      return
-                    }
-                    if (e.key === 'Tab') {
-                      const items = Array.from(
-                        e.currentTarget.querySelectorAll<HTMLElement>('button')
-                      )
-                      if (!items.length) return
-                      const first = items[0]
-                      const last = items[items.length - 1]
+                      avatarButtonRef.current?.focus()
+                    } else if (e.key === 'Tab') {
                       if (e.shiftKey) {
-                        if (document.activeElement === first) {
+                        if (document.activeElement === firstMenuRef.current) {
                           e.preventDefault()
-                          last.focus()
+                          lastMenuRef.current?.focus()
                         }
                       } else {
-                        if (document.activeElement === last) {
+                        if (document.activeElement === lastMenuRef.current) {
                           e.preventDefault()
-                          first.focus()
+                          firstMenuRef.current?.focus()
                         }
                       }
                     }
                   }}
-                  style={{ position: 'absolute', top: '46px', right: 0, zIndex: 41, background: '#0d0820', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '6px', minWidth: '180px', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}
                 >
                   <div style={{ padding: '8px 12px', fontSize: '12px', color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
                   <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
-                  <button onClick={() => { setMenuOpen(false); router.push('/profile') }} style={menuItemStyle}>Profile</button>
-                  <button onClick={() => { setMenuOpen(false); signOut() }} style={menuItemStyle}>Sign out</button>
+                  <button ref={firstMenuRef} onClick={() => { setMenuOpen(false); router.push('/profile') }} style={menuItemStyle}>Profile</button>
+                  <button ref={lastMenuRef} onClick={() => { setMenuOpen(false); signOut() }} style={menuItemStyle}>Sign out</button>
                 </div>
               </>
             )}
