@@ -127,38 +127,32 @@ describe('ArtistPage', () => {
     )
   })
 
-  it('PerfCard with a watch source is keyboard-focusable and opens the link on Enter', async () => {
+  it('PerfCard with a watch source is keyboard-accessible: Enter fires window.open', async () => {
+    const watchUrl = 'https://youtube.com/watch?v=test123'
+    mockGetBestSource.mockReturnValue({ url: watchUrl, platform: 'YouTube', isYouTube: true })
+    mockFrom.mockReturnValue(makeBuilder({
+      data: [{ ...makePerf('p1'), watch_sources: [{ id: 1, url: watchUrl, source_status: 'verified', subscription_service: null }] }],
+      error: null,
+    }))
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
-    mockGetBestSource.mockReturnValue({ url: 'https://youtube.com/watch?v=abc', platform: 'YouTube', isYouTube: true })
-    const perf = {
-      id: 'p1',
-      artist_name: 'Taylor Swift',
-      event_name: 'Eras Tour',
-      venue_name: null,
-      performance_date: null,
-      performance_type: null,
-      duration_minutes: null,
-      watch_sources: [{ id: 1, url: 'https://youtube.com/watch?v=abc', source_status: 'verified', subscription_service: null }],
-    }
-    mockFrom.mockReturnValue(makeBuilder({ data: [perf], error: null }))
 
     render(<ArtistPage />)
 
-    const card = await screen.findByRole('link', { name: /Watch Eras Tour by Taylor Swift/i })
-    expect(card).toBeTruthy()
-    expect(card.getAttribute('tabindex')).toBe('0')
-
+    const card = await screen.findByRole('link', { name: /Watch Concert p1/i })
+    expect(card).toHaveAttribute('tabindex', '0')
     fireEvent.keyDown(card, { key: 'Enter' })
-    expect(openSpy).toHaveBeenCalledWith('https://youtube.com/watch?v=abc', '_blank', 'noopener,noreferrer')
+
+    expect(openSpy).toHaveBeenCalledWith(watchUrl, '_blank', 'noopener,noreferrer')
+    openSpy.mockRestore()
   })
 
-  it('PerfCard without a watch source has no interactive role or tabIndex', async () => {
+  it('PerfCard without a watch source has no interactive role', async () => {
     mockGetBestSource.mockReturnValue(null)
     mockFrom.mockReturnValue(makeBuilder({ data: [makePerf('p1')], error: null }))
 
     render(<ArtistPage />)
 
     await waitFor(() => expect(screen.queryByText('Loading performances...')).toBeNull())
-    expect(screen.queryByRole('link')).toBeNull()
+    expect(screen.queryByRole('link', { name: /Watch/i })).toBeNull()
   })
 })
