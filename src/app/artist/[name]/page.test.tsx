@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 
 const { mockNotFound, mockParams, mockFrom, mockGetBestSource } = vi.hoisted(() => ({
   mockNotFound: vi.fn(),
@@ -125,5 +125,34 @@ describe('ArtistPage', () => {
     await waitFor(() =>
       expect(screen.getByText(/Couldn't load performances/)).toBeTruthy()
     )
+  })
+
+  it('PerfCard with a watch source is keyboard-accessible: Enter fires window.open', async () => {
+    const watchUrl = 'https://youtube.com/watch?v=test123'
+    mockGetBestSource.mockReturnValue({ url: watchUrl, platform: 'YouTube', isYouTube: true })
+    mockFrom.mockReturnValue(makeBuilder({
+      data: [{ ...makePerf('p1'), watch_sources: [{ id: 1, url: watchUrl, source_status: 'verified', subscription_service: null }] }],
+      error: null,
+    }))
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+
+    render(<ArtistPage />)
+
+    const card = await screen.findByRole('link', { name: /Watch Concert p1/i })
+    expect(card).toHaveAttribute('tabindex', '0')
+    fireEvent.keyDown(card, { key: 'Enter' })
+
+    expect(openSpy).toHaveBeenCalledWith(watchUrl, '_blank', 'noopener,noreferrer')
+    openSpy.mockRestore()
+  })
+
+  it('PerfCard without a watch source has no interactive role', async () => {
+    mockGetBestSource.mockReturnValue(null)
+    mockFrom.mockReturnValue(makeBuilder({ data: [makePerf('p1')], error: null }))
+
+    render(<ArtistPage />)
+
+    await waitFor(() => expect(screen.queryByText('Loading performances...')).toBeNull())
+    expect(screen.queryByRole('link', { name: /Watch/i })).toBeNull()
   })
 })
