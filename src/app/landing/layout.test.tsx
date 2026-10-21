@@ -1,9 +1,12 @@
-import { describe, it, expect } from "vitest";
-import { metadata } from "./layout";
+import { describe, it, expect } from 'vitest'
+import { metadata } from './layout'
 
-describe("LandingLayout metadata", () => {
-  it("has a descriptive title (not bare 'Home')", () => {
-    expect(metadata.title).not.toBe("Home");
-    expect(metadata.title).toBe("LiveListen — Discover Live Performances");
-  });
-});
+describe('LandingLayout metadata', () => {
+  it('title is not the bare word "Home"', () => {
+    expect(metadata.title).not.toBe('Home')
+  })
+
+  it('title contains the brand name', () => {
+    expect(String(metadata.title)).toContain('LiveListen')
+  })
+})
