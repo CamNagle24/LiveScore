@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Home",
+  title: "LiveListen — Discover Live Performances",
   description:
     "Discover, track, and save legendary live performances — from Coachella headliners to Grammy showstoppers — and find where to watch them.",
   openGraph: {
