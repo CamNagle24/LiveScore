@@ -63,6 +63,16 @@ beforeEach(() => {
   mockGetUser.mockResolvedValue({ data: { user: null } });
 });
 
+describe("SearchPage — search input accessibility", () => {
+  it("has an aria-label on the search input", async () => {
+    mockFrom.mockReturnValue(makeBuilder({ data: [], error: null }));
+    render(<SearchPage />);
+    const input = await screen.findByRole("textbox", { name: /search performances/i });
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-label", "Search performances");
+  });
+});
+
 describe("SearchPage — fetchPerformances error handling", () => {
   it("shows an inline error banner when the Supabase query fails", async () => {
     mockFrom.mockReturnValue(
